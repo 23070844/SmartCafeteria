@@ -6,112 +6,108 @@ from ultralytics import YOLO
 
 class CafeteriaVisionNode:
     def __init__(self):
-        print("初始化智慧食堂视觉与计费节点...")
-        # 1. 加载模型
+        print("初始化【智慧食堂-大马超市版】视觉与计费节点...")
+        # 加载模型（目前先用标准模型，后续换成我们自己训练的 juno_food.pt）
         self.model = YOLO('yolov8n.pt')
 
-        # 2. 食堂本地固定价格表 (可以随便改)
-        # 注意：这里用的是 YOLOv8n 能认出来的英文名
+        # 马来西亚超市常见食品/饮料价格表 (单位：马币 RM)
         self.menu_prices = {
-            "cup": 2.5,  # 杯子（假装是咖啡）
-            "bottle": 3.0,  # 瓶子（矿泉水）
-            "apple": 5.0,  # 苹果
-            "sandwich": 8.0,  # 三明治
-            "hot dog": 6.0,  # 热狗
-            "pizza": 12.0,  # 披萨
-            "donut": 4.0,  # 甜甜圈
-            "cell phone": 99.0,  # 如果识别到手机，卖99块哈哈！
-            "chair": 8.0
+            # --- 以下是 YOLO 默认自带就能识别的类别 ---
+            "apple": 2.00,  # 苹果 (单粒)
+            "banana": 1.50,  # 香蕉 (单条)
+            "orange": 2.20,  # 橙子 (单粒)
+            "sandwich": 6.50,  # 三明治 (便利店三角包)
+            "donut": 3.50,  # 甜甜圈
+            "cake": 5.50,  # 切片蛋糕
+            "bottle": 1.20,  # 矿泉水 (默认模型通常把所有瓶子认成 bottle)
+
+            # --- 以下是咱们接下来通过 A 路线要教会它认识的专属超市单品 ---
+            "cola": 2.50,  # 可口可乐听装
+            "sprite": 2.50,  # 雪碧听装
+            "milk": 3.80,  # 盒装全脂牛奶 (如 Goodday/Marigold)
+            "potato_chips": 4.80,  # 薯片 (如 Lay's 或 Mamee 筒装)
+            "biscuit": 3.90,  # 奥利奥饼干
+            "bread": 4.50  # Gardenia 白面包
         }
 
     def calculate_bill(self, item_counts):
-        """计算总价的专属函数"""
+        """核心计费逻辑：计算马币总价"""
         total_price = 0.0
         calculated_items = {}
 
         for item, count in item_counts.items():
-            # 如果识别出来的东西在我们的价格表里
             if item in self.menu_prices:
                 unit_price = self.menu_prices[item]
                 subtotal = unit_price * count
                 total_price += subtotal
 
-                # 记录详细信息
                 calculated_items[item] = {
                     "count": count,
-                    "unit_price": unit_price,
-                    "subtotal": subtotal
+                    "unit_price_RM": round(unit_price, 2),
+                    "subtotal_RM": round(subtotal, 2)
                 }
             else:
-                # 识别到了价格表里没有的东西，记录下来但价格为 0
+                # 识别到菜单外的物品（比如暂时把人或椅子算进来）
                 calculated_items[item] = {
                     "count": count,
-                    "unit_price": 0.0,
-                    "subtotal": 0.0,
-                    "note": "不在菜单中"
+                    "unit_price_RM": 0.0,
+                    "subtotal_RM": 0.0,
+                    "note": "Not a food item"
                 }
 
-        # 构建最终要发给 LLM 组的 JSON 格式
+        # 生成完美对接大模型营养组的 JSON 报文
         final_receipt = {
-            "order_details": calculated_items,
-            "total_bill": total_price
+            "currency": "RM",
+            "total_bill_RM": round(total_price, 2),
+            "order_details": calculated_items
         }
         return final_receipt
 
     def run(self):
-        """启动摄像头主循环"""
         cap = cv2.VideoCapture(0)
         if not cap.isOpened():
             print("❌ 找不到摄像头！")
             return
 
         print("✅ 节点就绪！")
-        print("👉 按 '空格键' 生成账单，按 'q' 键退出程序。")
+        print("👉 镜头前放好食物，按 '空格键' 生成马币账单")
+        print("👉 按 'q' 键退出")
 
         while True:
             success, frame = cap.read()
             if not success:
                 break
 
-            # 推理并显示画面
             results = self.model(frame, verbose=False)
             annotated_frame = results[0].plot()
-            cv2.imshow("Smart Cafeteria - Vision & Billing", annotated_frame)
+            cv2.imshow("Juno Smart Cafeteria - MYR Edition", annotated_frame)
 
             key = cv2.waitKey(1) & 0xFF
-
-            # 按 'q' 退出
             if key == ord('q'):
                 break
 
-            # 按 '空格键' 触发计算
-            elif key == 32:
+            elif key == 32:  # 空格触发
                 detected_classes = []
                 for box in results[0].boxes:
                     class_id = int(box.cls[0].item())
-                    detected_classes.append(self.model.names[class_id])
+                    class_name = self.model.names[class_id]
+                    detected_classes.append(class_name)
 
-                # 1. 统计数量
                 item_counts = dict(Counter(detected_classes))
-
-                # 2. 计算价格并生成小票格式字典
                 receipt_dict = self.calculate_bill(item_counts)
 
-                # 3. 转换成漂亮的 JSON 字符串
+                # 打印漂亮的格式化 JSON
                 json_output = json.dumps(receipt_dict, ensure_ascii=False, indent=4)
-
-                print("\n" + "=" * 40)
-                print("🎤 收到语音组 'Done' 信号！")
-                print("🧾 结账单生成完毕，发送给 LLM 营养组：")
+                print("\n" + "=" * 45)
+                print("🧾 [Billing System] Receipt Generated:")
                 print(json_output)
-                print("=" * 40 + "\n")
+                print("=" * 45 + "\n")
 
         cap.release()
         cv2.destroyAllWindows()
-        print("节点已关闭。")
+        print("节点已安全关闭。")
 
 
 if __name__ == '__main__':
-    # 实例化我们的类，并运行！
     node = CafeteriaVisionNode()
     node.run()
