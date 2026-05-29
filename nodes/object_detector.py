@@ -1,118 +1,203 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import cv2
 import json
-from collections import Counter
-from ultralytics import YOLO
 import rospy
+from collections import Counter
 from std_msgs.msg import String
+from ultralytics import YOLO
 
 
 class CafeteriaVisionNode:
+    """YOLO vision + billing node for the Smart Cafeteria ROS1 system.
+
+    Responsibilities:
+    1. Listen to /smart_cafeteria/intent.
+    2. When intent == "detect_object", scan the current camera frame.
+    3. Count detected cafeteria items.
+    4. Match prices and calculate subtotals / total.
+    5. Publish the receipt as a JSON string to /smart_cafeteria/yolo_detections.
+    """
+
+    INTENT_TOPIC = "/smart_cafeteria/intent"
+    YOLO_OUTPUT_TOPIC = "/smart_cafeteria/yolo_detections"
+
     def __init__(self):
-        print("初始化【智慧食堂-魔法逃课版】视觉与计费节点...")
+        rospy.loginfo("Initializing Smart Cafeteria YOLO vision + billing node...")
 
-        # 1. 加载支持“看词识物”的 YOLO-World 预训练模型
-        print("正在下载并加载 YOLO-World 模型，请稍候...")
-        self.model = YOLO('yolov8s-world.pt')
+        # ROS params make the node easier to run on different robots/laptops.
+        self.camera_index = rospy.get_param("~camera_index", 2)
+        self.conf_threshold = rospy.get_param("~conf_threshold", 0.25)
+        self.show_window = rospy.get_param("~show_window", True)
 
-        self.yolo_pub = rospy.Publisher(
-            "/smart_cafeteria/yolo_detections",
-            String,
-            queue_size=10
-        )
+        # The scan is triggered by a ROS intent message. Space key is kept only
+        # as a manual test shortcut when a screen/keyboard is available.
+        self.scan_requested = False
+        self.last_receipt = None
 
-        # 2. 【核心魔法】在这里用英文写下你们食堂具体要卖的商品！
-        # 哪怕是具体的牌子，只要特征明显，它都能强行认出来！
-        custom_classes = [
-            "Coca Cola can",  # 可口可乐易拉罐
-            "milk box",  # 盒装牛奶
-            "potato chips bag",  # 袋装薯片
-            "bread",  # 切片面包
-            "green apple",  # 青苹果
-            "green tea",  # 矿泉水瓶
-            "phone",
-            "water bottle"
+        # YOLO-World model.
+        rospy.loginfo("Loading YOLO-World model...")
+        self.model = YOLO("yolov8s-world.pt")
+
+        # IMPORTANT: every class name here must have the same key in menu_prices.
+        self.custom_classes = [
+            "Coca Cola can",
+            "milk box",
+            "potato chips bag",
+            "bread",
+            "green apple",
+            "green tea",
+            "water bottle",
         ]
-        self.model.set_classes(custom_classes)
-        print(f"✅ 模型已被赋予看懂以下物品的能力：{custom_classes}")
+        self.model.set_classes(self.custom_classes)
+        rospy.loginfo("YOLO custom classes: %s", self.custom_classes)
 
-        # 3. 对应的马币价格表 (名字必须和上面 custom_classes 里的严格一致)
+        # Price table owned by this node. Keys must exactly match custom_classes.
         self.menu_prices = {
             "Coca Cola can": 2.50,
             "milk box": 3.80,
             "potato chips bag": 4.80,
-            "sliced bread": 4.50,
-            "phone": 2.00,
-            "mineral water bottle": 1.20
+            "bread": 4.50,
+            "green apple": 1.50,
+            "green tea": 3.00,
+            "water bottle": 1.20,
         }
-        
+
+        # Publish JSON string receipt to the LLM / downstream node.
+        self.yolo_pub = rospy.Publisher(
+            self.YOLO_OUTPUT_TOPIC,
+            String,
+            queue_size=10,
+        )
+
+        # Listen to the LLM brain's intent topic. STT should feed the LLM first;
+        # this node should receive the stable control keyword "detect_object".
+        self.intent_sub = rospy.Subscriber(
+            self.INTENT_TOPIC,
+            String,
+            self.intent_callback,
+            queue_size=10,
+        )
+
+    def intent_callback(self, msg):
+        """React to control commands from the LLM brain node."""
+        intent = msg.data.strip().lower()
+        rospy.loginfo("Received intent: %s", intent)
+
+        if intent == "detect_object":
+            self.scan_requested = True
+        elif intent == "cancel_transaction":
+            self.scan_requested = False
+            self.last_receipt = None
+            rospy.loginfo("Transaction cancelled; cached receipt cleared.")
+
+    def extract_detected_classes(self, results):
+        """Convert YOLO result boxes into a list of class names."""
+        detected_classes = []
+
+        for box in results[0].boxes:
+            confidence = float(box.conf[0].item()) if box.conf is not None else 0.0
+            if confidence < self.conf_threshold:
+                continue
+
+            class_id = int(box.cls[0].item())
+            class_name = self.model.names[class_id]
+            detected_classes.append(class_name)
+
+        return detected_classes
 
     def calculate_bill(self, item_counts):
-        """核心计费逻辑"""
+        """Match detected items to prices and calculate the final bill."""
         total_price = 0.0
-        calculated_items = {}
+        order_details = []
+        unknown_items = []
 
         for item, count in item_counts.items():
-            if item in self.menu_prices:
-                unit_price = self.menu_prices[item]
-                subtotal = unit_price * count
-                total_price += subtotal
+            if item not in self.menu_prices:
+                unknown_items.append({"name": item, "count": count})
+                continue
 
-                calculated_items[item] = {
-                    "count": count,
-                    "unit_price_RM": round(unit_price, 2),
-                    "subtotal_RM": round(subtotal, 2)
-                }
+            unit_price = self.menu_prices[item]
+            subtotal = unit_price * count
+            total_price += subtotal
 
-        final_receipt = {
+            order_details.append({
+                "name": item,
+                "count": count,
+                "unit_price_RM": round(unit_price, 2),
+                "subtotal_RM": round(subtotal, 2),
+            })
+
+        return {
+            "source": "yolo_vision_node",
             "currency": "RM",
             "total_bill_RM": round(total_price, 2),
-            "order_details": calculated_items
+            "order_details": order_details,
+            "unknown_items": unknown_items,
         }
-        return final_receipt
+
+    def publish_receipt(self, receipt_dict):
+        """Publish receipt as std_msgs/String containing valid JSON."""
+        json_output = json.dumps(receipt_dict, ensure_ascii=False)
+        self.yolo_pub.publish(String(data=json_output))
+
+        rospy.loginfo("Published receipt JSON to %s", self.YOLO_OUTPUT_TOPIC)
+        print("\n" + "=" * 45)
+        print("[Billing System] Receipt Generated:")
+        print(json.dumps(receipt_dict, ensure_ascii=False, indent=4))
+        print("=" * 45 + "\n")
+
+    def scan_and_publish(self, results):
+        """Count the latest YOLO detections, calculate bill, and publish."""
+        detected_classes = self.extract_detected_classes(results)
+        item_counts = dict(Counter(detected_classes))
+        receipt_dict = self.calculate_bill(item_counts)
+        self.last_receipt = receipt_dict
+        self.publish_receipt(receipt_dict)
 
     def run(self):
-        cap = cv2.VideoCapture(2)
+        cap = cv2.VideoCapture(self.camera_index)
         if not cap.isOpened():
-            print("❌ 找不到摄像头！")
+            rospy.logerr("Cannot open camera index %s", self.camera_index)
             return
 
-        print("✅ 节点就绪！按 '空格键' 结账，按 'q' 键退出。")
+        rospy.loginfo(
+            "Node ready. Waiting for intent '%s' on %s. Press SPACE to test, q to quit.",
+            "detect_object",
+            self.INTENT_TOPIC,
+        )
 
-        while True:
-            success, frame = cap.read()
-            if not success:
-                break
+        try:
+            while not rospy.is_shutdown():
+                success, frame = cap.read()
+                if not success:
+                    rospy.logwarn("Failed to read camera frame.")
+                    continue
 
-            # 运行推理：它现在只会框出 custom_classes 里定义的那些东西！
-            results = self.model(frame, verbose=False)
-            annotated_frame = results[0].plot()
-            cv2.imshow("Juno Smart Cafeteria - YOLO World", annotated_frame)
+                results = self.model(frame, verbose=False)
 
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q'):
-                break
-            elif key == 32:
-                detected_classes = []
-                for box in results[0].boxes:
-                    class_id = int(box.cls[0].item())
-                    # 获取模型看出来的物品名字
-                    class_name = self.model.names[class_id]
-                    detected_classes.append(class_name)
+                if self.show_window:
+                    annotated_frame = results[0].plot()
+                    cv2.imshow("Juno Smart Cafeteria - YOLO World", annotated_frame)
 
-                item_counts = dict(Counter(detected_classes))
-                receipt_dict = self.calculate_bill(item_counts)
+                    key = cv2.waitKey(1) & 0xFF
+                    if key == ord("q"):
+                        break
+                    elif key == 32:  # SPACE, manual local test
+                        self.scan_requested = True
 
-                json_output = json.dumps(receipt_dict, ensure_ascii=False, indent=4)
-                print("\n" + "=" * 45)
-                print("🧾 [Billing System] Receipt Generated:")
-                print(json_output)
-                print("=" * 45 + "\n")
+                if self.scan_requested:
+                    self.scan_requested = False
+                    self.scan_and_publish(results)
 
-        cap.release()
-        cv2.destroyAllWindows()
-        print("节点已安全关闭。")
+        finally:
+            cap.release()
+            cv2.destroyAllWindows()
+            rospy.loginfo("YOLO vision + billing node closed safely.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    rospy.init_node("object_detection_node", anonymous=False)
     node = CafeteriaVisionNode()
     node.run()
