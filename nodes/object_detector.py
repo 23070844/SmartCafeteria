@@ -2,6 +2,8 @@ import cv2
 import json
 from collections import Counter
 from ultralytics import YOLO
+import rospy
+from std_msgs.msg import String
 
 
 class CafeteriaVisionNode:
@@ -11,6 +13,12 @@ class CafeteriaVisionNode:
         # 1. 加载支持“看词识物”的 YOLO-World 预训练模型
         print("正在下载并加载 YOLO-World 模型，请稍候...")
         self.model = YOLO('yolov8s-world.pt')
+
+        self.yolo_pub = rospy.Publisher(
+            "/smart_cafeteria/yolo_detections",
+            String,
+            queue_size=10
+        )
 
         # 2. 【核心魔法】在这里用英文写下你们食堂具体要卖的商品！
         # 哪怕是具体的牌子，只要特征明显，它都能强行认出来！
@@ -36,6 +44,7 @@ class CafeteriaVisionNode:
             "phone": 2.00,
             "mineral water bottle": 1.20
         }
+        
 
     def calculate_bill(self, item_counts):
         """核心计费逻辑"""
