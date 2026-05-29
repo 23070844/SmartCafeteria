@@ -18,9 +18,11 @@ class CafeteriaVisionNode:
             "Coca Cola can",  # 可口可乐易拉罐
             "milk box",  # 盒装牛奶
             "potato chips bag",  # 袋装薯片
-            "sliced bread",  # 切片面包
+            "bread",  # 切片面包
             "green apple",  # 青苹果
-            "mineral water bottle"  # 矿泉水瓶
+            "green tea",  # 矿泉水瓶
+            "phone",
+            "water bottle"
         ]
         self.model.set_classes(custom_classes)
         print(f"✅ 模型已被赋予看懂以下物品的能力：{custom_classes}")
@@ -31,7 +33,7 @@ class CafeteriaVisionNode:
             "milk box": 3.80,
             "potato chips bag": 4.80,
             "sliced bread": 4.50,
-            "green apple": 2.00,
+            "phone": 2.00,
             "mineral water bottle": 1.20
         }
 
@@ -60,7 +62,7 @@ class CafeteriaVisionNode:
         return final_receipt
 
     def run(self):
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(2)
         if not cap.isOpened():
             print("❌ 找不到摄像头！")
             return
