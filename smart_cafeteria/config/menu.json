@@ -1,0 +1,74 @@
+[
+  {
+    "id": "fried_chicken",
+    "name": "Fried Chicken",
+    "price": 8.50,
+    "calories": 320,
+    "protein": "25g",
+    "fat": "18g",
+    "carbs": "10g",
+    "sodium": "600mg",
+    "sugar": "0g",
+    "category": "main"
+  },
+  {
+    "id": "nasi_lemak",
+    "name": "Nasi Lemak",
+    "price": 10.00,
+    "calories": 650,
+    "protein": "15g",
+    "fat": "25g",
+    "carbs": "80g",
+    "sodium": "850mg",
+    "sugar": "8g",
+    "category": "main"
+  },
+  {
+    "id": "salad",
+    "name": "Garden Salad",
+    "price": 6.00,
+    "calories": 100,
+    "protein": "2g",
+    "fat": "5g",
+    "carbs": "12g",
+    "sodium": "150mg",
+    "sugar": "3g",
+    "category": "side"
+  },
+  {
+    "id": "coke",
+    "name": "Coca-Cola",
+    "price": 3.50,
+    "calories": 140,
+    "protein": "0g",
+    "fat": "0g",
+    "carbs": "39g",
+    "sodium": "45mg",
+    "sugar": "39g",
+    "category": "beverage"
+  },
+  {
+    "id": "mineral_water",
+    "name": "Mineral Water",
+    "price": 1.50,
+    "calories": 0,
+    "protein": "0g",
+    "fat": "0g",
+    "carbs": "0g",
+    "sodium": "5mg",
+    "sugar": "0g",
+    "category": "beverage"
+  },
+  {
+    "id": "apple",
+    "name": "Fresh Apple",
+    "price": 2.00,
+    "calories": 95,
+    "protein": "0.5g",
+    "fat": "0.3g",
+    "carbs": "25g",
+    "sodium": "2mg",
+    "sugar": "19g",
+    "category": "fruit"
+  }
+]
