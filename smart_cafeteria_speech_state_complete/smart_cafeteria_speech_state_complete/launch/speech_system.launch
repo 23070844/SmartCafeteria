@@ -1,0 +1,20 @@
+<launch>
+  <!-- Main launch file for real microphone + TTS + state management -->
+
+  <rosparam command="load" file="$(find smart_cafeteria_speech_state)/config/speech_config.yaml" />
+
+  <node pkg="smart_cafeteria_speech_state"
+        type="state_manager_node.py"
+        name="state_manager_node"
+        output="screen" />
+
+  <node pkg="smart_cafeteria_speech_state"
+        type="tts_node.py"
+        name="tts_node"
+        output="screen" />
+
+  <node pkg="smart_cafeteria_speech_state"
+        type="stt_node.py"
+        name="stt_node"
+        output="screen" />
+</launch>
