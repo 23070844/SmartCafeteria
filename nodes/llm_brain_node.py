@@ -196,66 +196,179 @@ class LLMBrainNode:
     def yolo_callback(self, msg):
         """
         Triggers when the object detection node publishes detected items.
-        Example format: [{"id": "fried_chicken", "quantity": 1}, ...] or ["fried chicken", "coke"]
+        Expected format: {
+            "source": "yolo_vision_node",
+            "currency": "RM",
+            "total_bill_RM": 2.5,
+            "order_details": [{"name": "...", "count": 1, "unit_price_RM": 2.5, "subtotal_RM": 2.5}],
+            "unknown_items": [{"name": "...", "count": 1}]
+        }
         """
         rospy.loginfo(f"LLMBrainNode [Vision Callback]: Received detections: {msg.data}")
+        # --- OLD CODE COMMENTED OFF START ---
+        # try:
+        #     detections = json.loads(msg.data)
+        #     if not isinstance(detections, list):
+        #         raise ValueError("YOLO payload must be a JSON array")
+        # except Exception as e:
+        #     rospy.logwarn(f"LLMBrainNode: Failed to parse YOLO detections: {e}")
+        #     return
+        # 
+        # # Initialize lists for hybrid matching
+        # exact_matched_items = []
+        # unmatched_raw_detections = []
+        # 
+        # # Helper maps of menu items for quick exact lookup
+        # menu_by_id = {}
+        # menu_by_name = {}
+        # for item in self.menu_data:
+        #     menu_by_id[item["id"].lower()] = item
+        #     menu_by_name[item["name"].lower()] = item
+        # 
+        # # Step 1: Perform exact matching in Python first
+        # for detect in detections:
+        #     if isinstance(detect, dict):
+        #         raw_id = detect.get("id") or detect.get("name") or ""
+        #         qty = detect.get("quantity", 1)
+        #     else:
+        #         raw_id = detect
+        #         qty = 1
+        #     
+        #     raw_id_str = str(raw_id).strip()
+        #     raw_id_lower = raw_id_str.lower()
+        #     raw_clean = raw_id_lower.replace("_", " ").replace("-", " ")
+        #     
+        #     # Check for exact ID match or exact Name match
+        #     matched_item = None
+        #     if raw_id_lower in menu_by_id:
+        #         matched_item = menu_by_id[raw_id_lower]
+        #     elif raw_clean in menu_by_name:
+        #         matched_item = menu_by_name[raw_clean]
+        #     
+        #     if matched_item:
+        #         rospy.loginfo(f"LLMBrainNode: Exact match found in Python for '{raw_id_str}' -> '{matched_item['name']}'")
+        #         exact_matched_items.append({
+        #             "name": matched_item["name"],
+        #             "quantity": qty,
+        #             "price": matched_item["price"],
+        #             "calories": matched_item["calories"],
+        #             "sugar": matched_item["sugar"],
+        #             "sodium": matched_item["sodium"]
+        #         })
+        #     else:
+        #         rospy.loginfo(f"LLMBrainNode: No exact match for '{raw_id_str}'. Sending to LLM.")
+        #         unmatched_raw_detections.append(detect)
+        # 
+        # # Step 2: Use LLM ONLY for items that didn't match exactly
+        # llm_matched_items = []
+        # if unmatched_raw_detections:
+        #     rospy.loginfo(f"LLMBrainNode: Requesting LLM matching for {len(unmatched_raw_detections)} items...")
+        #     matched_result = self.client.match_price_list(self.menu_data, unmatched_raw_detections)
+        #     
+        #     # If the matching API returned an error (due to connectivity, auth, or rate limit), we abort!
+        #     if "error" in matched_result:
+        #         rospy.logerr(f"LLMBrainNode [Vision Callback]: Price matching failed: {matched_result['error']}.")
+        #         # Notify user and abort checkout state rather than putting bad / empty matching data in
+        #         err_msg = String()
+        #         err_msg.data = "Checkout system error: Unable to match items on the tray. Please try again."
+        #         self.response_pub.publish(err_msg)
+        #         
+        #         # Publish cancellation intent to reset other nodes and clear session
+        #         self.intent_pub.publish("cancel_transaction")
+        #         return
+        # 
+        #     llm_matched_items = matched_result.get("matched_items", [])
+        #     
+        #     # Handle any unmatched items reported by the LLM
+        #     unmatched_list = matched_result.get("unmatched_items", [])
+        #     if unmatched_list:
+        #         rospy.logwarn(f"LLMBrainNode: LLM failed to match these items: {unmatched_list}")
+        #         for raw_item in unmatched_list:
+        #             name = raw_item.get("id") if isinstance(raw_item, dict) else raw_item
+        #             llm_matched_items.append({
+        #                 "name": f"Unrecognized: {name}",
+        #                 "quantity": 1,
+        #                 "price": 0.0,
+        #                 "calories": 0,
+        #                 "sugar": "N/A",
+        #                 "sodium": "N/A"
+        #             })
+        # 
+        # # Step 3: Combine exact Python matches with LLM fuzzy matches
+        # self.current_bill_items = exact_matched_items + llm_matched_items
+        # --- OLD CODE COMMENTED OFF END ---
+
         try:
             detections = json.loads(msg.data)
-            if not isinstance(detections, list):
-                raise ValueError("YOLO payload must be a JSON array")
+            if not isinstance(detections, dict):
+                raise ValueError("YOLO payload must be a JSON object")
         except Exception as e:
             rospy.logwarn(f"LLMBrainNode: Failed to parse YOLO detections: {e}")
             return
 
-        # Initialize lists for hybrid matching
-        exact_matched_items = []
-        unmatched_raw_detections = []
-        
-        # Helper maps of menu items for quick exact lookup
-        menu_by_id = {}
-        menu_by_name = {}
-        for item in self.menu_data:
-            menu_by_id[item["id"].lower()] = item
-            menu_by_name[item["name"].lower()] = item
+        order_details = detections.get("order_details", [])
+        unknown_items = detections.get("unknown_items", [])
 
-        # Step 1: Perform exact matching in Python first
-        for detect in detections:
-            if isinstance(detect, dict):
-                raw_id = detect.get("id") or detect.get("name") or ""
-                qty = detect.get("quantity", 1)
-            else:
-                raw_id = detect
-                qty = 1
-            
-            raw_id_str = str(raw_id).strip()
-            raw_id_lower = raw_id_str.lower()
-            raw_clean = raw_id_lower.replace("_", " ").replace("-", " ")
-            
-            # Check for exact ID match or exact Name match
-            matched_item = None
-            if raw_id_lower in menu_by_id:
-                matched_item = menu_by_id[raw_id_lower]
-            elif raw_clean in menu_by_name:
-                matched_item = menu_by_name[raw_clean]
-            
-            if matched_item:
-                rospy.loginfo(f"LLMBrainNode: Exact match found in Python for '{raw_id_str}' -> '{matched_item['name']}'")
-                exact_matched_items.append({
-                    "name": matched_item["name"],
+        # Helper to find a matching menu item in self.menu_data
+        def find_menu_item(name):
+            name_lower = name.lower()
+            # Try exact name match
+            for item in self.menu_data:
+                if item["name"].lower() == name_lower:
+                    return item
+            # Try fuzzy match (e.g., if one contains the other after normalization)
+            for item in self.menu_data:
+                menu_name_lower = item["name"].lower()
+                menu_id_lower = item["id"].lower()
+                norm_name = name_lower.replace(" ", "").replace("-", "").replace("_", "")
+                norm_menu_name = menu_name_lower.replace(" ", "").replace("-", "").replace("_", "")
+                norm_menu_id = menu_id_lower.replace(" ", "").replace("-", "").replace("_", "")
+                if norm_menu_name in norm_name or norm_name in norm_menu_name or norm_menu_id in norm_name:
+                    return item
+            return None
+
+        # Build current_bill_items
+        self.current_bill_items = []
+
+        # Process order_details (known/matched items from YOLO vision node)
+        rospy.loginfo(f"LLMBrainNode: Processing {len(order_details)} order_details and {len(unknown_items)} unknown_items.")
+        for detail in order_details:
+            raw_name = detail.get("name", "")
+            qty = detail.get("count", 1)
+            price = detail.get("unit_price_RM", 0.0)
+
+            matched = find_menu_item(raw_name)
+            if matched:
+                rospy.loginfo(f"LLMBrainNode: Menu match found for '{raw_name}' -> '{matched['name']}'")
+                self.current_bill_items.append({
+                    "name": matched["name"],
                     "quantity": qty,
-                    "price": matched_item["price"],
-                    "calories": matched_item["calories"],
-                    "sugar": matched_item["sugar"],
-                    "sodium": matched_item["sodium"]
+                    "price": price,
+                    "calories": matched.get("calories", 0),
+                    "sugar": matched.get("sugar", "N/A"),
+                    "sodium": matched.get("sodium", "N/A")
                 })
             else:
-                rospy.loginfo(f"LLMBrainNode: No exact match for '{raw_id_str}'. Sending to LLM.")
-                unmatched_raw_detections.append(detect)
+                rospy.loginfo(f"LLMBrainNode: No menu match for '{raw_name}', using YOLO-provided price.")
+                self.current_bill_items.append({
+                    "name": raw_name,
+                    "quantity": qty,
+                    "price": price,
+                    "calories": 0,
+                    "sugar": "N/A",
+                    "sodium": "N/A"
+                })
 
-        # Step 2: Use LLM ONLY for items that didn't match exactly
-        llm_matched_items = []
-        if unmatched_raw_detections:
-            rospy.loginfo(f"LLMBrainNode: Requesting LLM matching for {len(unmatched_raw_detections)} items...")
+        # Process unknown_items using LLM matching like the older version
+        if unknown_items:
+            unmatched_raw_detections = []
+            for unknown in unknown_items:
+                unmatched_raw_detections.append({
+                    "name": unknown.get("name", ""),
+                    "quantity": unknown.get("count", 1)
+                })
+
+            rospy.loginfo(f"LLMBrainNode: Requesting LLM matching for {len(unmatched_raw_detections)} unknown items...")
             matched_result = self.client.match_price_list(self.menu_data, unmatched_raw_detections)
             
             # If the matching API returned an error (due to connectivity, auth, or rate limit), we abort!
@@ -267,28 +380,42 @@ class LLMBrainNode:
                 self.response_pub.publish(err_msg)
                 
                 # Publish cancellation intent to reset other nodes and clear session
-                self.intent_pub.publish("cancel_transaction")
+                cancel_msg = String()
+                cancel_msg.data = "cancel_transaction"
+                self.intent_pub.publish(cancel_msg)
                 return
 
             llm_matched_items = matched_result.get("matched_items", [])
+            for item in llm_matched_items:
+                self.current_bill_items.append({
+                    "name": item.get("name", ""),
+                    "quantity": item.get("quantity", 1),
+                    "price": item.get("price", 0.0),
+                    "calories": item.get("calories", 0),
+                    "sugar": item.get("sugar", "N/A"),
+                    "sodium": item.get("sodium", "N/A")
+                })
             
             # Handle any unmatched items reported by the LLM
             unmatched_list = matched_result.get("unmatched_items", [])
             if unmatched_list:
                 rospy.logwarn(f"LLMBrainNode: LLM failed to match these items: {unmatched_list}")
                 for raw_item in unmatched_list:
-                    name = raw_item.get("id") if isinstance(raw_item, dict) else raw_item
-                    llm_matched_items.append({
+                    if isinstance(raw_item, dict):
+                        name = raw_item.get("name") or raw_item.get("id") or ""
+                        qty = raw_item.get("quantity") or raw_item.get("count") or 1
+                    else:
+                        name = str(raw_item)
+                        qty = 1
+                    
+                    self.current_bill_items.append({
                         "name": f"Unrecognized: {name}",
-                        "quantity": 1,
+                        "quantity": qty,
                         "price": 0.0,
                         "calories": 0,
                         "sugar": "N/A",
                         "sodium": "N/A"
                     })
-
-        # Step 3: Combine exact Python matches with LLM fuzzy matches
-        self.current_bill_items = exact_matched_items + llm_matched_items
 
         # Step 4: Perform Python-based subtotal calculations
         self.current_subtotal = 0.0

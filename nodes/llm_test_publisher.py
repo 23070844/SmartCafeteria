@@ -51,25 +51,81 @@ def run_local_test(endpoint, key, model, offline_mode):
 
     # 2. Simulate Detections & Billing
     print("\n[Step 2] YOLO detects items: Fried Chicken (1x) and Coca-Cola (1x)")
-    yolo_detections = [{"id": "fried_chicken", "quantity": 1}, {"id": "coke", "quantity": 1}]
-    
-    # Python-based price matching and subtotal calculation
+    # Commented off old code:
+    # yolo_detections = [{"id": "fried_chicken", "quantity": 1}, {"id": "coke", "quantity": 1}]
+    # 
+    # # Python-based price matching and subtotal calculation
+    # matched_items = []
+    # subtotal = 0.0
+    # for detect in yolo_detections:
+    #     item_id = detect["id"]
+    #     qty = detect["quantity"]
+    #     for item in menu_data:
+    #         if item["id"] == item_id:
+    #             matched_items.append({
+    #                 "name": item["name"],
+    #                 "quantity": qty,
+    #                 "price": item["price"],
+    #                 "total_price": item["price"] * qty,
+    #                 "calories": item["calories"]
+    #             })
+    #             subtotal += item["price"] * qty
+    #             break
+
+    yolo_detections = {
+        "source": "yolo_vision_node",
+        "currency": "RM",
+        "total_bill_RM": 12.0,
+        "order_details": [
+            {
+                "name": "Fried Chicken",
+                "count": 1,
+                "unit_price_RM": 8.5,
+                "subtotal_RM": 8.5
+            },
+            {
+                "name": "Coca-Cola",
+                "count": 1,
+                "unit_price_RM": 3.5,
+                "subtotal_RM": 3.5
+            }
+        ],
+        "unknown_items": []
+    }
+
     matched_items = []
     subtotal = 0.0
-    for detect in yolo_detections:
-        item_id = detect["id"]
-        qty = detect["quantity"]
+
+    def find_menu_item(name):
         for item in menu_data:
-            if item["id"] == item_id:
-                matched_items.append({
-                    "name": item["name"],
-                    "quantity": qty,
-                    "price": item["price"],
-                    "total_price": item["price"] * qty,
-                    "calories": item["calories"]
-                })
-                subtotal += item["price"] * qty
-                break
+            if item["name"].lower() == name.lower() or item["id"].lower() == name.lower():
+                return item
+        return None
+
+    for detail in yolo_detections["order_details"]:
+        name = detail["name"]
+        qty = detail["count"]
+        price = detail["unit_price_RM"]
+        matched = find_menu_item(name)
+        if matched:
+            matched_items.append({
+                "name": matched["name"],
+                "quantity": qty,
+                "price": price,
+                "calories": matched.get("calories", 0),
+                "sugar": matched.get("sugar", "N/A"),
+                "sodium": matched.get("sodium", "N/A")
+            })
+        else:
+            matched_items.append({
+                "name": name,
+                "quantity": qty,
+                "price": price,
+                "calories": 0,
+                "sugar": "N/A",
+                "sodium": "N/A"
+            })
+        subtotal += price * qty
     
     print(f"  -> Matched Items: {[item['name'] for item in matched_items]}")
     print(f"  -> Calculated Subtotal (Python): RM {subtotal:.2f}")
@@ -136,8 +192,28 @@ def run_ros_test():
         # Automatically act as the simulated YOLO node
         if msg.data == "detect_object":
             print("  [Simulated Vision Node]: 'detect_object' keyword received! Publishing detections...")
-            time.sleep(1.0)
-            detections = [{"id": "fried_chicken", "quantity": 1}, {"id": "coke", "quantity": 1}]
+            # Commented off old code:
+            # detections = [{"id": "fried_chicken", "quantity": 1}, {"id": "coke", "quantity": 1}]
+            detections = {
+                "source": "yolo_vision_node",
+                "currency": "RM",
+                "total_bill_RM": 12.0,
+                "order_details": [
+                    {
+                        "name": "Fried Chicken",
+                        "count": 1,
+                        "unit_price_RM": 8.5,
+                        "subtotal_RM": 8.5
+                    },
+                    {
+                        "name": "Coca-Cola",
+                        "count": 1,
+                        "unit_price_RM": 3.5,
+                        "subtotal_RM": 3.5
+                    }
+                ],
+                "unknown_items": []
+            }
             yolo_msg = String()
             yolo_msg.data = json.dumps(detections)
             yolo_pub.publish(yolo_msg)
