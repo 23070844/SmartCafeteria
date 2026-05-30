@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """
-Task 2 - Speech-to-Text Node
-Publish recognized speech to /smart_cafeteria/user_speech.
-Place this file in the existing ROS package scripts/ folder.
+Task 2 - Speech-to-Text Node for Smart Cafeteria
+
+Real microphone mode:
+- Uses SpeechRecognition + PyAudio when available.
+
+Fallback mode:
+- Uses keyboard input when SpeechRecognition/PyAudio/microphone is unavailable.
+
+Main output topic:
+- /smart_cafeteria/user_speech
 """
 
 import rospy
@@ -14,64 +21,85 @@ except ImportError:
     sr = None
 
 
+USER_SPEECH_TOPIC = "/smart_cafeteria/user_speech"
+STT_STATUS_TOPIC = "/smart_cafeteria/stt_status"
+
+
 class STTNode:
     def __init__(self):
         rospy.init_node("stt_node", anonymous=False)
 
-        self.pub = rospy.Publisher(
-            "/smart_cafeteria/user_speech",
-            String,
-            queue_size=10
-        )
+        self.user_speech_pub = rospy.Publisher(USER_SPEECH_TOPIC, String, queue_size=10)
+        self.status_pub = rospy.Publisher(STT_STATUS_TOPIC, String, queue_size=10)
 
         self.language = rospy.get_param("~language", "en-US")
-        self.listen_timeout = rospy.get_param("~listen_timeout", 5)
-        self.phrase_time_limit = rospy.get_param("~phrase_time_limit", 4)
+        self.listen_timeout = rospy.get_param("~listen_timeout", 10)
+        self.phrase_time_limit = rospy.get_param("~phrase_time_limit", 6)
         self.keyboard_fallback = rospy.get_param("~keyboard_fallback", True)
 
+        rospy.loginfo("STT Node started.")
+        rospy.loginfo("Publishing recognized speech to: %s", USER_SPEECH_TOPIC)
+
         if sr is None:
-            rospy.logerr("SpeechRecognition is not installed. Run: pip3 install SpeechRecognition")
-            if self.keyboard_fallback:
-                self.run_keyboard_mode()
-                return
-            raise RuntimeError("Missing SpeechRecognition")
+            rospy.logwarn("SpeechRecognition is not installed. Run: pip3 install SpeechRecognition")
+            self.publish_status("FALLBACK_KEYBOARD")
+            self.run_keyboard_mode()
+            return
 
         self.recognizer = sr.Recognizer()
+        self.recognizer.energy_threshold = 300
+        self.recognizer.dynamic_energy_threshold = True
+        self.recognizer.pause_threshold = 0.8
 
         try:
             self.microphone = sr.Microphone()
-            rospy.loginfo("STT node started with microphone.")
+            rospy.loginfo("Microphone detected. Running real microphone STT mode.")
+            self.publish_status("MICROPHONE_MODE")
+            self.run_microphone_mode()
         except Exception as e:
-            rospy.logerr("Microphone/PyAudio error: %s", e)
-            rospy.logerr("Try: sudo apt install portaudio19-dev python3-pyaudio")
+            rospy.logwarn("Cannot access microphone or PyAudio: %s", str(e))
             if self.keyboard_fallback:
+                rospy.logwarn("Using keyboard fallback mode.")
+                self.publish_status("FALLBACK_KEYBOARD")
                 self.run_keyboard_mode()
-                return
-            raise
+            else:
+                raise
 
-        self.run_microphone_mode()
+    def publish_status(self, status):
+        msg = String()
+        msg.data = status
+        self.status_pub.publish(msg)
+        rospy.loginfo("[STT STATUS] %s", status)
 
-    def publish_text(self, text):
+    def publish_user_speech(self, text):
         text = text.strip()
-        if text:
-            msg = String()
-            msg.data = text
-            self.pub.publish(msg)
-            rospy.loginfo("Published /smart_cafeteria/user_speech: %s", text)
+        if not text:
+            return
+
+        msg = String()
+        msg.data = text
+        self.user_speech_pub.publish(msg)
+        rospy.loginfo("Published %s: %s", USER_SPEECH_TOPIC, text)
 
     def run_keyboard_mode(self):
-        rospy.logwarn("Using keyboard fallback mode.")
+        rospy.loginfo("Keyboard fallback mode enabled.")
+        rospy.loginfo("Type a sentence such as 'done', then press Enter.")
+
         while not rospy.is_shutdown():
             try:
                 text = input("user_speech> ")
             except (EOFError, KeyboardInterrupt):
                 break
-            self.publish_text(text)
+
+            self.publish_user_speech(text)
 
     def run_microphone_mode(self):
+        rospy.loginfo("Speak into the microphone. Example: 'done'.")
+
         while not rospy.is_shutdown():
             try:
                 with self.microphone as source:
+                    self.publish_status("LISTENING")
                     rospy.loginfo("Listening...")
                     self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                     audio = self.recognizer.listen(
@@ -80,17 +108,26 @@ class STTNode:
                         phrase_time_limit=self.phrase_time_limit
                     )
 
+                self.publish_status("RECOGNIZING")
                 text = self.recognizer.recognize_google(audio, language=self.language)
-                self.publish_text(text)
+                text = text.strip()
+
+                rospy.loginfo("Recognized speech: %s", text)
+                self.publish_user_speech(text)
+                self.publish_status("IDLE")
 
             except sr.WaitTimeoutError:
-                rospy.loginfo("No speech detected.")
+                rospy.logwarn("No speech detected within timeout.")
+                self.publish_status("TIMEOUT")
             except sr.UnknownValueError:
                 rospy.logwarn("Could not understand audio.")
+                self.publish_status("UNKNOWN_SPEECH")
             except sr.RequestError as e:
-                rospy.logerr("Speech recognition service error: %s", e)
+                rospy.logerr("Google SpeechRecognition request error: %s", str(e))
+                self.publish_status("RECOGNITION_SERVICE_ERROR")
             except Exception as e:
-                rospy.logerr("STT error: %s", e)
+                rospy.logerr("Unexpected STT error: %s", str(e))
+                self.publish_status("ERROR")
 
 
 if __name__ == "__main__":
