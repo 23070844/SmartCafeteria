@@ -93,7 +93,13 @@ Handles cognitive reasoning, intent classification, price matching database look
 ### Linux / Robot (ROS Node Machine)
 In your ROS Python environment, install the project dependencies:
 ```bash
+/home/mustar/robot_project
+source /home/mustar/robot_project/venv/bin/activate
+source /home/mustar/Desktop/WQF7010-SMARTCAFETERIA/catkin_ws/devel/setup.bash
+
 pip install -r requirements.txt
+
+cd ~/Desktop/WQF7010-SMARTCAFETERIA/catkin_ws/src/smart_cafeteria/
 ```
 
 ---
@@ -125,3 +131,21 @@ Use the interactive CLI test tool to publish mock inputs:
 ```bash
 rosrun smart_cafeteria llm_test_publisher.py
 ```
+
+
+## temp use
+sample receipt json:
+{
+    "source": "yolo_vision_node",
+    "currency": "RM",
+    "total_bill_RM": 2.5,
+    "order_details": [
+        {
+            "name": "Coca Cola can",
+            "count": 1,
+            "unit_price_RM": 2.5,
+            "subtotal_RM": 2.5
+        }
+    ],
+    "unknown_items": []
+}
