@@ -134,7 +134,8 @@ rosrun smart_cafeteria llm_test_publisher.py
 
 
 ## temp use
-sample receipt json:
+sample receipt json
+```json
 {
     "source": "yolo_vision_node",
     "currency": "RM",
@@ -149,3 +150,4 @@ sample receipt json:
     ],
     "unknown_items": []
 }
+```
