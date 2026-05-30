@@ -1,0 +1,52 @@
+<launch>
+  <!-- General Configuration -->
+  <arg name="offline_mode" default="false" doc="Run in offline simulation mode without API calls. Set to false to use .env values." />
+  <arg name="menu_path" default="" doc="Override path to menu.json database (leave empty to auto-resolve)" />
+
+  <!-- Vision Node Configuration -->
+  <arg name="camera_index" default="2" doc="Camera index for YOLO object detection" />
+  <arg name="conf_threshold" default="0.25" doc="Confidence threshold for YOLO detections" />
+  <arg name="show_window" default="true" doc="Whether to show the YOLO detection window" />
+
+  <!-- STT Node Configuration -->
+  <arg name="language" default="en-US" doc="Language for Speech-to-Text" />
+  <arg name="listen_timeout" default="10" doc="Timeout for listening (seconds)" />
+  <arg name="phrase_time_limit" default="6" doc="Time limit for a phrase (seconds)" />
+  <arg name="keyboard_fallback" default="true" doc="Enable keyboard fallback if microphone fails" />
+
+  <!-- TTS Node Configuration -->
+  <arg name="speech_rate" default="155" doc="Speech rate for Text-to-Speech" />
+  <arg name="volume" default="1.0" doc="Volume for Text-to-Speech (0.0 to 1.0)" />
+
+  <!-- Speech-to-Text Node -->
+  <node name="stt_node" pkg="smart_cafeteria" type="stt_node.py" output="screen">
+    <param name="language" value="$(arg language)" />
+    <param name="listen_timeout" value="$(arg listen_timeout)" />
+    <param name="phrase_time_limit" value="$(arg phrase_time_limit)" />
+    <param name="keyboard_fallback" value="$(arg keyboard_fallback)" />
+  </node>
+
+  <!-- Text-to-Speech Node -->
+  <node name="tts_node" pkg="smart_cafeteria" type="tts_node.py" output="screen">
+    <param name="speech_rate" value="$(arg speech_rate)" />
+    <param name="volume" value="$(arg volume)" />
+  </node>
+
+  <!-- YOLO Object Detector Node -->
+  <node name="object_detector_node" pkg="smart_cafeteria" type="object_detector.py" output="screen">
+    <param name="camera_index" value="$(arg camera_index)" />
+    <param name="conf_threshold" value="$(arg conf_threshold)" />
+    <param name="show_window" value="$(arg show_window)" />
+  </node>
+
+  <!-- LLM Brain ROS Node -->
+  <node name="llm_brain_node" pkg="smart_cafeteria" type="llm_brain_node.py" output="screen">
+    <param name="offline_mode" value="$(arg offline_mode)" />
+    
+    <!-- Load credentials dynamically from system environment variables at startup -->
+    <param name="azure_endpoint" value="$(optenv AZURE_OPENAI_ENDPOINT)" />
+    <param name="azure_key" value="$(optenv AZURE_OPENAI_API_KEY)" />
+    <param name="azure_model" value="$(optenv AZURE_OPENAI_MODEL)" />
+    <param name="menu_path" value="$(arg menu_path)" />
+  </node>
+</launch>
