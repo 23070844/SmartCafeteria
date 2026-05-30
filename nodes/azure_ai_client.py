@@ -264,7 +264,31 @@ class AzureAIFoundryClient:
 
         user_prompt = f"Menu Database:\n{json.dumps(menu_data, indent=2)}\n\nRaw Detected Items:\n{json.dumps(raw_detected_items)}"
 
-        llm_response = self._call_llm(system_prompt, user_prompt, temperature=0.1, json_output=True)
+        try:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                    temperature=0.1,
+                    response_format={"type": "json_object"}
+                )
+                llm_response = response.choices[0].message.content.strip()
+            except Exception as e:
+                logging.warning(f"AzureAIFoundryClient: Calling LLM with json response_format failed ({e}). Retrying without response_format.")
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                    temperature=0.1
+                )
+                llm_response = response.choices[0].message.content.strip()
+        except Exception as e:
+            logging.error(f"AzureAIFoundryClient: LLM call failed: {e}")
+            llm_response = None
+
         if not llm_response:
             return {"error": "API failed", "matched_items": []}
 
