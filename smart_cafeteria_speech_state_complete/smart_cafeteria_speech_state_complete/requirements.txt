@@ -1,4 +1,0 @@
-SpeechRecognition
-PyAudio
-pyttsx3
-PyYAML
