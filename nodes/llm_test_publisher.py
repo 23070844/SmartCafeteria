@@ -159,8 +159,10 @@ def run_local_test(endpoint, key, model, offline_mode):
         f"The menu is:\n{json.dumps(menu_data, indent=2)}\n"
         f"The user has these items on their tray:\n{json.dumps(matched_items, indent=2)}\n"
         f"Subtotal: RM {subtotal:.2f}\n"
+        "Answer their question concisely (1-2 sentences maximum, strictly brief) in a supportive, friendly tone. "
         "Whenever you mention any price or total in your answer, always spell it out in full English words "
-        "(e.g., 'three ringgit seventy cents' or 'twelve ringgit') instead of using 'RM' or numerical values.\n"
+        "(e.g., 'three ringgit seventy cents' or 'twelve ringgit') instead of using 'RM' or numerical values. "
+        "Keep replies very short, suitable for fast Text-to-Speech (TTS)."
     )
     full_history = [{"role": "system", "content": system_prompt}] + chat_history
     reply = client.generate_conversational_reply(full_history)

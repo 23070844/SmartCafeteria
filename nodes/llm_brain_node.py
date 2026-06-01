@@ -103,11 +103,11 @@ class LLMBrainNode:
             prompt += "The user has no items on the tray yet.\n\n"
 
         prompt += (
-            "Answer their question concisely (1-3 sentences maximum) in a supportive, friendly tone. "
+            "Answer their question concisely (1-2 sentences maximum, strictly brief) in a supportive, friendly tone. "
             "If they ask to pay or cancel, instruct them that they can say 'proceed' or 'cancel'. "
             "Whenever you mention any price or total in your answer, always spell it out in full English words "
             "(e.g., 'three ringgit seventy cents' or 'twelve ringgit') instead of using 'RM' or numerical values. "
-            "Keep replies suitable for Text-to-Speech (TTS)."
+            "Keep replies very short, suitable for fast Text-to-Speech (TTS)."
         )
         return prompt
 
