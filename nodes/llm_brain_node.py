@@ -105,6 +105,8 @@ class LLMBrainNode:
         prompt += (
             "Answer their question concisely (1-3 sentences maximum) in a supportive, friendly tone. "
             "If they ask to pay or cancel, instruct them that they can say 'proceed' or 'cancel'. "
+            "Whenever you mention any price or total in your answer, always spell it out in full English words "
+            "(e.g., 'three ringgit seventy cents' or 'twelve ringgit') instead of using 'RM' or numerical values. "
             "Keep replies suitable for Text-to-Speech (TTS)."
         )
         return prompt
@@ -438,11 +440,12 @@ class LLMBrainNode:
         # })
         # self.bill_pub.publish(bill_msg)
 
-        # Call LLM to generate nutritional advice
-        advice = self.client.get_nutritional_advice(self.current_bill_items, self.current_subtotal)
-        
-        # Build the final kiosk output sentence
-        combined_response = f"Your total is RM {self.current_subtotal:.2f}. {advice}"
+        # Call LLM to generate checkout response (including subtotal in words and nutritional advice in online mode)
+        if self.offline_mode:
+            advice = self.client.get_nutritional_advice(self.current_bill_items, self.current_subtotal)
+            combined_response = f"Your total is RM {self.current_subtotal:.2f}. {advice}"
+        else:
+            combined_response = self.client.get_nutritional_advice(self.current_bill_items, self.current_subtotal)
         rospy.loginfo(f"LLMBrainNode: Publishing checkout response: '{combined_response}'")
 
         # Publish combined bill + advice to TTS

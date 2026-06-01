@@ -130,9 +130,12 @@ def run_local_test(endpoint, key, model, offline_mode):
     print(f"  -> Matched Items: {[item['name'] for item in matched_items]}")
     print(f"  -> Calculated Subtotal (Python): RM {subtotal:.2f}")
 
-    # Generate Advice
-    advice = client.get_nutritional_advice(matched_items, subtotal)
-    combined_response = f"Your total is RM {subtotal:.2f}. {advice}"
+    # Generate combined checkout response (including subtotal in words and nutritional advice in online mode)
+    if offline_mode:
+        advice = client.get_nutritional_advice(matched_items, subtotal)
+        combined_response = f"Your total is RM {subtotal:.2f}. {advice}"
+    else:
+        combined_response = client.get_nutritional_advice(matched_items, subtotal)
     print(f"  -> Combined Response (Advice + Price):\n     '{combined_response}'")
 
     # Initialize history
@@ -156,6 +159,8 @@ def run_local_test(endpoint, key, model, offline_mode):
         f"The menu is:\n{json.dumps(menu_data, indent=2)}\n"
         f"The user has these items on their tray:\n{json.dumps(matched_items, indent=2)}\n"
         f"Subtotal: RM {subtotal:.2f}\n"
+        "Whenever you mention any price or total in your answer, always spell it out in full English words "
+        "(e.g., 'three ringgit seventy cents' or 'twelve ringgit') instead of using 'RM' or numerical values.\n"
     )
     full_history = [{"role": "system", "content": system_prompt}] + chat_history
     reply = client.generate_conversational_reply(full_history)
@@ -293,6 +298,11 @@ if __name__ == '__main__':
         key = args.key or os.environ.get('AZURE_OPENAI_API_KEY', '')
         model = args.model or os.environ.get('AZURE_OPENAI_MODEL', '')
         
+        print(args.offline)
+        print(endpoint)
+        print(key)
+        print(model)
+
         offline = args.offline or not bool(endpoint and key)
         run_local_test(endpoint, key, model, offline)
     else:
