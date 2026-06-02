@@ -42,13 +42,20 @@ class CafeteriaVisionNode:
 
         # IMPORTANT: every class name here must have the same key in menu_prices.
         self.custom_classes = [
-            "Coca Cola can",
+            "Coca Cola",
             "milk box",
-            "potato chips bag",
-            "bread",
-            "green apple",
-            "green tea",
             "water bottle",
+            "sushi rice",
+            "burger",
+            "Cut fruits",
+            "egg",
+            "Snacks",
+            "Nugget",
+            "Green Vegetable", 
+            "Orange",
+            "Carbonated Drink Can",
+            "Sweets",
+            "Bok Choy",                 
         ]
         self.model.set_classes(self.custom_classes)
         rospy.loginfo("YOLO custom classes: %s", self.custom_classes)
@@ -62,6 +69,10 @@ class CafeteriaVisionNode:
             "green apple": 1.50,
             "green tea": 3.00,
             "water bottle": 1.20,
+            "Carbonated Drink Can":3.00,
+            "Green Vegetable":4.00,
+            "Coca Cola":3.50,
+            "Orange":2.50,
         }
 
         # Publish JSON string receipt to the LLM / downstream node.

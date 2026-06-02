@@ -71,4 +71,139 @@
     "sugar": "19g",
     "category": "fruit"
   }
+
+  {
+    "id": "sushi",
+    "name": "Sushi",
+    "price": 12.00,
+    "calories": 250,
+    "protein": "12g",
+    "fat": "3g",
+    "carbs": "42g",
+    "sodium": "500mg",
+    "sugar": "5g",
+    "category": "meal"
+  },
+  {
+    "id": "burger",
+    "name": "Burger",
+    "price": 15.00,
+    "calories": 354,
+    "protein": "17g",
+    "fat": "17g",
+    "carbs": "29g",
+    "sodium": "500mg",
+    "sugar": "6g",
+    "category": "meal"
+  },
+  {
+    "id": "cut-fruits",
+    "name": "Cut Fruits",
+    "price": 5.00,
+    "calories": 80,
+    "protein": "1g",
+    "fat": "0.2g",
+    "carbs": "20g",
+    "sodium": "2mg",
+    "sugar": "16g",
+    "category": "fruit"
+  },
+  {
+    "id": "egg",
+    "name": "Boiled Egg",
+    "price": 1.50,
+    "calories": 78,
+    "protein": "6g",
+    "fat": "5g",
+    "carbs": "0.6g",
+    "sodium": "62mg",
+    "sugar": "0.2g",
+    "category": "protein"
+  },
+  {
+    "id": "snacks",
+    "name": "Mixed Snacks",
+    "price": 3.00,
+    "calories": 150,
+    "protein": "2g",
+    "fat": "8g",
+    "carbs": "18g",
+    "sodium": "180mg",
+    "sugar": "4g",
+    "category": "snack"
+  },
+  {
+    "id": "nugget",
+    "name": "Chicken Nuggets",
+    "price": 6.00,
+    "calories": 270,
+    "protein": "14g",
+    "fat": "17g",
+    "carbs": "16g",
+    "sodium": "540mg",
+    "sugar": "0g",
+    "category": "protein"
+  },
+  {
+    "id": "Green vegetable",
+    "name": "Mixed Green Vegetables",
+    "price": 4.00,
+    "calories": 50,
+    "protein": "2g",
+    "fat": "0.5g",
+    "carbs": "10g",
+    "sodium": "40mg",
+    "sugar": "4g",
+    "category": "vegetable"
+  },
+  {
+    "id": "orange",
+    "name": "Fresh Orange",
+    "price": 2.50,
+    "calories": 62,
+    "protein": "1.2g",
+    "fat": "0.2g",
+    "carbs": "15g",
+    "sodium": "0mg",
+    "sugar": "12g",
+    "category": "fruit"
+  }
+
+  {
+    "id": "sweets",
+    "name": "Assorted Sweets",
+    "price": 2.00,
+    "calories": 120,
+    "protein": "0g",
+    "fat": "0g",
+    "carbs": "30g",
+    "sodium": "10mg",
+    "sugar": "25g",
+    "category": "snack"
+  },
+  {
+    "id": "egg",
+    "name": "Boiled Egg",
+    "price": 1.50,
+    "calories": 78,
+    "protein": "6g",
+    "fat": "5g",
+    "carbs": "0.6g",
+    "sodium": "62mg",
+    "sugar": "0.2g",
+    "category": "protein"
+  }
+
+  {
+  "id": "carbonated-drink-can",
+  "name": "Carbonated Drink Can",
+  "price": 3.00,
+  "calories": 140,
+  "protein": "0g",
+  "fat": "0g",
+  "carbs": "39g",
+  "sodium": "45mg",
+  "sugar": "39g",
+  "category": "drink"
+}
 ]

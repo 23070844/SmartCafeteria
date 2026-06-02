@@ -80,8 +80,8 @@ class LLMBrainNode:
         except Exception as e:
             rospy.logerr(f"LLMBrainNode: Failed to load menu JSON from {path}: {e}")
             return [
-                {"id": "fried_chicken", "name": "Fried Chicken", "price": 8.50, "calories": 320, "sugar": "0g", "sodium": "600mg"},
-                {"id": "coke", "name": "Coca-Cola", "price": 3.50, "calories": 140, "sugar": "39g", "sodium": "45mg"}
+               # {"id": "fried_chicken", "name": "Fried Chicken", "price": 8.50, "calories": 320, "sugar": "0g", "sodium": "600mg"},
+                #{"id": "coke", "name": "Coca-Cola", "price": 3.50, "calories": 140, "sugar": "39g", "sodium": "45mg"}
             ]
 
     def get_system_prompt(self):
