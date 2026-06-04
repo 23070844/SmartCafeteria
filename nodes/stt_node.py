@@ -17,6 +17,19 @@ from std_msgs.msg import String
 
 try:
     import speech_recognition as sr
+    # Suppress ALSA warnings/errors on Linux systems
+    try:
+        from ctypes import CFUNCTYPE, c_char_p, c_int, cdll
+
+        ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
+        def py_error_handler(filename, line, function, err, fmt):
+            pass
+        c_error_handler = ERROR_HANDLER_FUNC(py_error_handler)
+
+        asound = cdll.LoadLibrary("libasound.so.2")
+        asound.snd_lib_error_set_handler(c_error_handler)
+    except Exception:
+        pass
 except ImportError:
     sr = None
 
@@ -96,38 +109,41 @@ class STTNode:
     def run_microphone_mode(self):
         rospy.loginfo("Speak into the microphone. Example: 'done'.")
 
-        while not rospy.is_shutdown():
-            try:
-                with self.microphone as source:
+        with self.microphone as source:
+            rospy.loginfo("Calibrating microphone for ambient noise...")
+            self.recognizer.adjust_for_ambient_noise(source, duration=1.0)
+            rospy.loginfo("Calibration finished. Energy threshold: %f", self.recognizer.energy_threshold)
+
+            while not rospy.is_shutdown():
+                try:
                     self.publish_status("LISTENING")
                     rospy.loginfo("Listening...")
-                    self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                     audio = self.recognizer.listen(
                         source,
                         timeout=self.listen_timeout,
                         phrase_time_limit=self.phrase_time_limit
                     )
 
-                self.publish_status("RECOGNIZING")
-                text = self.recognizer.recognize_google(audio, language=self.language)
-                text = text.strip()
+                    self.publish_status("RECOGNIZING")
+                    text = self.recognizer.recognize_google(audio, language=self.language)
+                    text = text.strip()
 
-                rospy.loginfo("Recognized speech: %s", text)
-                self.publish_user_speech(text)
-                self.publish_status("IDLE")
+                    rospy.loginfo("Recognized speech: %s", text)
+                    self.publish_user_speech(text)
+                    self.publish_status("IDLE")
 
-            except sr.WaitTimeoutError:
-                rospy.logwarn("No speech detected within timeout.")
-                self.publish_status("TIMEOUT")
-            except sr.UnknownValueError:
-                rospy.logwarn("Could not understand audio.")
-                self.publish_status("UNKNOWN_SPEECH")
-            except sr.RequestError as e:
-                rospy.logerr("Google SpeechRecognition request error: %s", str(e))
-                self.publish_status("RECOGNITION_SERVICE_ERROR")
-            except Exception as e:
-                rospy.logerr("Unexpected STT error: %s", str(e))
-                self.publish_status("ERROR")
+                except sr.WaitTimeoutError:
+                    rospy.logwarn("No speech detected within timeout.")
+                    self.publish_status("TIMEOUT")
+                except sr.UnknownValueError:
+                    rospy.logwarn("Could not understand audio.")
+                    self.publish_status("UNKNOWN_SPEECH")
+                except sr.RequestError as e:
+                    rospy.logerr("Google SpeechRecognition request error: %s", str(e))
+                    self.publish_status("RECOGNITION_SERVICE_ERROR")
+                except Exception as e:
+                    rospy.logerr("Unexpected STT error: %s", str(e))
+                    self.publish_status("ERROR")
 
 
 if __name__ == "__main__":
