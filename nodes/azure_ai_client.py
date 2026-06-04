@@ -14,14 +14,9 @@ class AzureAIFoundryClient:
         """
         self.model_name = model_name or os.environ.get("AZURE_OPENAI_MODEL") or "gpt-oss-120b"
         
-        # Load API keys from arguments or AZURE_OPENAI_API_KEY environment variable
         self.api_key = api_key or os.environ.get("AZURE_OPENAI_API_KEY")
         self.base_url = endpoint or os.environ.get("AZURE_OPENAI_ENDPOINT")
         
-        if not self.base_url:
-            self.base_url = "https://ronotic-resource.openai.azure.com/openai/v1/"
-
-        # Validate that the key and endpoint exist
         if not self.api_key:
             raise ValueError(
                 "[FATAL ERROR] AZURE_OPENAI_API_KEY environment variable or parameter is missing! "
@@ -32,7 +27,6 @@ class AzureAIFoundryClient:
                 "[FATAL ERROR] AZURE_OPENAI_ENDPOINT environment variable or parameter is missing!"
             )
 
-        # Standardize base_url for the OpenAI client
         self.base_url = self.base_url.rstrip('/')
         if self.base_url.endswith('/chat/completions'):
             self.base_url = self.base_url[:-17].rstrip('/')
@@ -53,7 +47,7 @@ class AzureAIFoundryClient:
         Analyzes the user's speech transcript and classifies it into one of four keywords.
         Returns exactly one of: 'detect_object', 'chatting', 'proceed_payment', 'cancel_transaction'.
         """
-        # LLM Prompts for Intent Parsing
+
         system_prompt = (
             "You are a routing intent classifier for a smart cafeteria checkout kiosk.\n"
             "Analyze the user's speech transcript and classify it into EXACTLY ONE of the following keywords:\n"
@@ -77,7 +71,6 @@ class AzureAIFoundryClient:
             )
             intent = response.choices[0].message.content.strip().lower()
             
-            # Clean up the response in case LLM outputs markdown or quotes
             for keyword in ["detect_object", "chatting", "proceed_payment", "cancel_transaction"]:
                 if keyword in intent:
                     return keyword
@@ -92,7 +85,6 @@ class AzureAIFoundryClient:
         """
         Generates healthy/nutritional advice based on purchased items and subtotal.
         """
-        # LLM Prompts
         system_prompt = (
             "You are a friendly, encouraging wellness AI nutritionist at a cafeteria self-checkout kiosk.\n"
             "Examine the selected tray items and the subtotal, and generate the final checkout response.\n"
@@ -139,7 +131,6 @@ class AzureAIFoundryClient:
         """
         Matches YOLO detected items to the official menu items using LLM.
         """
-        # LLM Prompts
         system_prompt = (
             "You are an intelligent price matcher for a cafeteria self-checkout kiosk.\n"
             "You are provided with a menu database of items in JSON format. Match the list of raw detected items "
