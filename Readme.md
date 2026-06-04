@@ -79,6 +79,12 @@ sequenceDiagram
    catkin_make
    source devel/setup.bash
    ```
+   > **Note:** If `catkin_make` fails with CMake cache errors (e.g. paths pointing to the different directories), remove the stale build artifacts and rebuild:
+   > ```bash
+   > rm -rf build devel
+   > catkin_make
+   > source devel/setup.bash
+   > ```
 
 4. **Create and activate** a Python virtual environment, then install dependencies:
    ```bash
