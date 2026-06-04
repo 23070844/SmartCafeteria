@@ -60,94 +60,72 @@ sequenceDiagram
 * **`/smart_cafeteria/yolo_detections`** (`std_msgs/String`): JSON array of detected tray items published by the YOLO Vision node.
 * **`/smart_cafeteria/kiosk_response`** (`std_msgs/String`): Spoken output transcripts published by the LLM Brain and subscribed to by the Text-to-Speech (TTS) node.
 
----
+## Installation and Execution
 
-## Project Packages & Subsystems
+### From ZIP Folder
 
-### 1. LLM Brain Subsystem (`smart_cafeteria`)
-Handles cognitive reasoning, intent classification, price matching database lookup, and nutrition Q&A.
-
-* **[azure_ai_client.py](smart_cafeteria/nodes/azure_ai_client.py)**: Integrates Microsoft Azure OpenAI API via the `openai` Python SDK. Performs classification, price-matching, wellness tips generation, and multi-turn chat completions.
-* **[llm_brain_node.py](smart_cafeteria/nodes/llm_brain_node.py)**: State-management ROS node. Caches YOLO tray scans, matches items and calculates prices in Python, and handles the intent topic routing loop.
-* **[llm_test_publisher.py](smart_cafeteria/nodes/llm_test_publisher.py)**: Test bench utility for local simulation testing (no ROS) or active ROS topic tracing.
-* **[requirements.txt](requirements.txt)**: Central Python library dependencies list.
-* **[setup_win_test_env.bat](setup_win_test_env.bat)**: Automated Conda environment creation batch script for Windows local testing.
-
-### 2. Computer Vision Subsystem (Future Node)
-*Add your YOLO Object Detection node description and launch details here.*
-
-### 3. Speech Subsystem (Future Node)
-*Add your Speech-to-Text (STT) and Text-to-Speech (TTS) node descriptions here.*
-
----
-
-## Installation & Setup
-
-### Windows PC (Local Testing)
-1. Copy `.env.example` to `.env` and fill in your Azure OpenAI API keys and model deployment details.
-2. In a **Miniforge Prompt**, run the Windows test environment script:
-   ```cmd
-   setup_win_test_env.bat
+1. **Unzip** the project archive:
+   ```bash
+   unzip WQF7010-SMARTCAFETERIA.zip
    ```
 
-### Linux / Robot (ROS Node Machine)
-In your ROS Python environment, install the project dependencies:
-```bash
-/home/mustar/robot_project
-source /home/mustar/robot_project/venv/bin/activate
-source /home/mustar/Desktop/WQF7010-SMARTCAFETERIA/catkin_ws/devel/setup.bash
+2. **Navigate** to the Catkin workspace:
+   ```bash
+   cd WQF7010-SMARTCAFETERIA/catkin_ws
+   ```
 
-pip install -r requirements.txt
+3. **Build** the workspace:
+   ```bash
+   catkin_make
+   source devel/setup.bash
+   ```
 
-cd ~/Desktop/WQF7010-SMARTCAFETERIA/catkin_ws/src/smart_cafeteria/
-```
+4. **Create and activate** a Python virtual environment, then install dependencies:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r src/smart_cafeteria/requirements.txt
+   ```
 
----
+5. **Launch** the Smart Cafeteria system:
+   ```bash
+   roslaunch smart_cafeteria smart_cafeteria.launch
+   ```
 
-## Testing & Execution
+### From GitHub
 
-### 1. Run Standalone Simulation Testing
-Validate the client code and prompts locally on Windows or Linux:
-```bash
-python smart_cafeteria/nodes/llm_test_publisher.py --local
-```
+1. **Create a project folder** and initialise the Catkin workspace:
+   ```bash
+   mkdir WQF7010-SMARTCAFETERIA
+   cd WQF7010-SMARTCAFETERIA
+   mkdir -p catkin_ws/src
+   cd catkin_ws
+   catkin_make
+   ```
 
-### 2. Launch the Kiosk ROS Nodes
-Build your Catkin workspace first:
-```bash
-cd ~/catkin_ws
-catkin_make
-source devel/setup.bash
-```
+2. **Clone the repository** into the `src` directory, then rebuild:
+   ```bash
+   cd src
+   git clone https://github.com/23070844/SmartCafeteria.git smart_cafeteria
+   cd ..
+   catkin_make
+   ```
 
-Load your environment credentials and launch the LLM Brain Node:
-```bash
-export $(cat .env | xargs)
-roslaunch smart_cafeteria llm_brain.launch
-```
+3. **Configure environment variables** — copy the example file and fill in credentials:
+   ```bash
+   cp src/smart_cafeteria/.env.example src/smart_cafeteria/.env
+   nano src/smart_cafeteria/.env    # edit with your API keys
+   ```
 
-### 3. Trace and Mock Topics
-Use the interactive CLI test tool to publish mock inputs:
-```bash
-rosrun smart_cafeteria llm_test_publisher.py
-```
+4. **Create and activate** a Python virtual environment, then install dependencies:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r src/smart_cafeteria/requirements.txt
+   ```
 
-
-## temp use
-sample receipt json
-```json
-{
-    "source": "yolo_vision_node",
-    "currency": "RM",
-    "total_bill_RM": 2.5,
-    "order_details": [
-        {
-            "name": "Coca Cola can",
-            "count": 1,
-            "unit_price_RM": 2.5,
-            "subtotal_RM": 2.5
-        }
-    ],
-    "unknown_items": []
-}
-```
+5. **Source the workspace and launch**:
+   ```bash
+   source devel/setup.bash
+   roslaunch smart_cafeteria smart_cafeteria.launch
+   ```

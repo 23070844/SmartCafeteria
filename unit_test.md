@@ -9,21 +9,7 @@
 | `/smart_cafeteria/yolo_detections` | `std_msgs/String` | `object_detector_node` | `llm_brain_node` | JSON string representing items detected on the tray. |
 | `/smart_cafeteria/kiosk_response` | `std_msgs/String` | `llm_brain_node` | `tts_node` | Spoken response text for wellness tips and transaction details. |
 
----
-
-## 2. Test Setup (Linux)
-
-```bash
-# Source Catkin workspace
-source ~/Desktop/WQF7010-SMARTCAFETERIA/catkin_ws/devel/setup.bash
-# Activate python environment
-
-roslaunch smart_cafeteria smart_cafeteria.launch
-```
-
----
-
-## 3. Core Topic Tests
+## 2. Core Topic Tests
 
 ### 1. Topic: `/smart_cafeteria/user_speech`
 
