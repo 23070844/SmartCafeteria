@@ -70,8 +70,7 @@
     "sodium": "2mg",
     "sugar": "19g",
     "category": "fruit"
-  }
-
+  },
   {
     "id": "sushi",
     "name": "Sushi",
@@ -167,8 +166,7 @@
     "sodium": "0mg",
     "sugar": "12g",
     "category": "fruit"
-  }
-
+  },
   {
     "id": "sweets",
     "name": "Assorted Sweets",
@@ -192,8 +190,7 @@
     "sodium": "62mg",
     "sugar": "0.2g",
     "category": "protein"
-  }
-
+  },
   {
   "id": "carbonated-drink-can",
   "name": "Carbonated Drink Can",
