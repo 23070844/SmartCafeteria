@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
 import cv2
 import json
 import rospy
@@ -23,6 +24,14 @@ class CafeteriaVisionNode:
     INTENT_TOPIC = "/smart_cafeteria/intent"
     YOLO_OUTPUT_TOPIC = "/smart_cafeteria/yolo_detections"
 
+    def _load_menu(self, path):
+        try:
+            with open(path, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            rospy.logerr(f"CafeteriaVisionNode: Failed to load menu JSON from {path}: {e}")
+            return []
+
     def __init__(self):
         rospy.loginfo("Initializing Smart Cafeteria YOLO vision + billing node...")
 
@@ -40,40 +49,26 @@ class CafeteriaVisionNode:
         rospy.loginfo("Loading YOLO-World model...")
         self.model = YOLO("yolov8s-world.pt")
 
-        # IMPORTANT: every class name here must have the same key in menu_prices.
-        self.custom_classes = [
-            "Coca Cola",
-            "milk box",
-            "water bottle",
-            "sushi rice",
-            "burger",
-            "Cut fruits",
-            "egg",
-            "Snacks",
-            "Nugget",
-            "Green Vegetable", 
-            "Orange",
-            "Carbonated Drink Can",
-            "Sweets",
-            "Bok Choy",                 
-        ]
-        self.model.set_classes(self.custom_classes)
-        rospy.loginfo("YOLO custom classes: %s", self.custom_classes)
+        # Load Menu Database JSON
+        menu_path = rospy.get_param('~menu_path', '')
+        if not menu_path:
+            try:
+                import rospkg
+                r = rospkg.RosPack()
+                menu_path = os.path.join(r.get_path('smart_cafeteria'), 'src', 'config', 'menu.json')
+            except Exception:
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                menu_path = os.path.join(script_dir, '..', 'src', 'config', 'menu.json')
 
-        # Price table owned by this node. Keys must exactly match custom_classes.
-        self.menu_prices = {
-            "Coca Cola can": 2.50,
-            "milk box": 3.80,
-            "potato chips bag": 4.80,
-            "bread": 4.50,
-            "green apple": 1.50,
-            "green tea": 3.00,
-            "water bottle": 1.20,
-            "Carbonated Drink Can":3.00,
-            "Green Vegetable":4.00,
-            "Coca Cola":3.50,
-            "Orange":2.50,
-        }
+        rospy.loginfo(f"CafeteriaVisionNode: Loading menu database from: {menu_path}")
+        menu_data = self._load_menu(menu_path)
+
+        # Build custom classes and price mappings from the menu JSON
+        self.custom_classes = [item["name"] for item in menu_data]
+        self.menu_prices = {item["name"]: item["price"] for item in menu_data}
+
+        self.model.set_classes(self.custom_classes)
+        rospy.loginfo("YOLO custom classes loaded from menu: %s", self.custom_classes)
 
         # Publish JSON string receipt to the LLM / downstream node.
         self.yolo_pub = rospy.Publisher(

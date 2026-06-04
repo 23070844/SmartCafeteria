@@ -36,6 +36,7 @@
     <param name="camera_index" value="$(arg camera_index)" />
     <param name="conf_threshold" value="$(arg conf_threshold)" />
     <param name="show_window" value="$(arg show_window)" />
+    <param name="menu_path" value="$(arg menu_path)" />
   </node>
 
   <!-- LLM Brain ROS Node -->
