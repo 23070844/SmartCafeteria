@@ -55,10 +55,10 @@ class CafeteriaVisionNode:
             try:
                 import rospkg
                 r = rospkg.RosPack()
-                menu_path = os.path.join(r.get_path('smart_cafeteria'), 'src', 'config', 'menu.json')
+                menu_path = os.path.join(r.get_path('smart_cafeteria'), 'config', 'menu.json')
             except Exception:
                 script_dir = os.path.dirname(os.path.abspath(__file__))
-                menu_path = os.path.join(script_dir, '..', 'src', 'config', 'menu.json')
+                menu_path = os.path.join(script_dir, '..', 'config', 'menu.json')
 
         rospy.loginfo(f"CafeteriaVisionNode: Loading menu database from: {menu_path}")
         menu_data = self._load_menu(menu_path)
