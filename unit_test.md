@@ -1,8 +1,4 @@
-# ROS Topic Unit Testing & Integration Guide
-
-This guide details how to unit test the publishing and subscribing functionality of the core communication topics in the **Smart Cafeteria Self-Checkout Kiosk** system on Linux.
-
----
+# ROS Topic Unit Testing
 
 ## 1. ROS Communication Reference
 
@@ -17,11 +13,10 @@ This guide details how to unit test the publishing and subscribing functionality
 
 ## 2. Test Setup (Linux)
 
-Before running these tests, ensure your workspace is sourced and the main launcher is running:
-
 ```bash
 # Source Catkin workspace
 source ~/Desktop/WQF7010-SMARTCAFETERIA/catkin_ws/devel/setup.bash
+# Activate python environment
 
 roslaunch smart_cafeteria smart_cafeteria.launch
 ```
@@ -39,7 +34,7 @@ roslaunch smart_cafeteria smart_cafeteria.launch
   rostopic pub -1 /smart_cafeteria/user_speech std_msgs/String "data: 'start checking out'"
   ```
 * **Expected Output/Reaction:**
-  * The `llm_brain_node` log should output:
+  * The `llm_brain_node` log output:
     ```
     LLMBrainNode [STT Callback]: User said: 'start checking out'
     LLMBrainNode [STT Callback]: Parsed intent keyword: 'detect_object'
@@ -52,7 +47,7 @@ roslaunch smart_cafeteria smart_cafeteria.launch
   rostopic echo /smart_cafeteria/user_speech
   ```
 * **Expected Output/Reaction:**
-  * When you speak into the microphone (or type into the terminal in STT fallback mode), you should see the raw transcript appear in real time:
+  * The raw transcript appears when speaking into the microphone:
     ```yaml
     data: "is the burger healthy"
     ---
@@ -69,18 +64,18 @@ roslaunch smart_cafeteria smart_cafeteria.launch
   rostopic pub -1 /smart_cafeteria/intent std_msgs/String "data: 'detect_object'"
   ```
 * **Expected Output/Reaction:**
-  * The `object_detector_node` log will show that a scan has been requested:
+  * The `object_detector_node` log shows that a scan has been requested:
     ```
     Received intent: detect_object
     ```
-  * If a camera is connected, it will capture the current frame, run YOLO detection, and publish the results to `/smart_cafeteria/yolo_detections`.
+  *  It captures the current frame, run YOLO detection, and publishes the results to `/smart_cafeteria/yolo_detections`.
 
 * **Publish Command (Trigger conversation reply):**
   ```bash
   rostopic pub -1 /smart_cafeteria/intent std_msgs/String "data: 'chatting'"
   ```
 * **Expected Output/Reaction:**
-  * The `llm_brain_node` log will show:
+  * The `llm_brain_node` log shows:
     ```
     LLMBrainNode [Intent Callback]: Received intent: 'chatting'
     ```
@@ -92,7 +87,7 @@ roslaunch smart_cafeteria smart_cafeteria.launch
   rostopic echo /smart_cafeteria/intent
   ```
 * **Expected Output/Reaction:**
-  * When speech is published, you should see the matching intent:
+  * When speech is published, received the matching intent:
     * For *"start checking out"* $\rightarrow$ `data: "detect_object"`
     * For *"is the milk box healthy"* $\rightarrow$ `data: "chatting"`
     * For *"proceed to pay"* $\rightarrow$ `data: "proceed_payment"`
@@ -109,7 +104,7 @@ roslaunch smart_cafeteria smart_cafeteria.launch
   rostopic pub -1 /smart_cafeteria/yolo_detections std_msgs/String "data: '{\"source\": \"yolo_vision_node\", \"currency\": \"RM\", \"total_bill_RM\": 4.70, \"order_details\": [{\"name\": \"Coca Cola\", \"count\": 1, \"unit_price_RM\": 3.50, \"subtotal_RM\": 3.50}, {\"name\": \"water bottle\", \"count\": 1, \"unit_price_RM\": 1.20, \"subtotal_RM\": 1.20}], \"unknown_items\": []}'"
   ```
 * **Expected Output/Reaction:**
-  * The `llm_brain_node` log should show the parsed items and subtotal:
+  * The `llm_brain_node` log shows the parsed items and subtotal:
     ```
     LLMBrainNode [Vision Callback]: Received detections: ...
     LLMBrainNode: Processing 2 order_details and 0 unknown_items.
@@ -124,7 +119,7 @@ roslaunch smart_cafeteria smart_cafeteria.launch
   rostopic echo /smart_cafeteria/yolo_detections
   ```
 * **Expected Output/Reaction:**
-  * When YOLO is triggered by `detect_object` (or when spacebar is pressed in the YOLO window), a JSON receipt string should appear:
+  * YOLO is triggered by `detect_object`, JSON receipt string appears:
     ```yaml
     data: "{\"source\": \"yolo_vision_node\", \"currency\": \"RM\", \"total_bill_RM\": 15.0, \"order_details\": [{\"name\": \"burger\", \"count\": 1, \"unit_price_RM\": 15.0, \"subtotal_RM\": 15.0}], \"unknown_items\": []}"
     ---
@@ -141,12 +136,12 @@ roslaunch smart_cafeteria smart_cafeteria.launch
   rostopic pub -1 /smart_cafeteria/kiosk_response std_msgs/String "data: 'Welcome to the Smart Cafeteria'"
   ```
 * **Expected Output/Reaction:**
-  * The `tts_node` will log:
+  * The `tts_node` logs:
     ```
     Received kiosk response: Welcome to the Smart Cafeteria
     Speaking: Welcome to the Smart Cafeteria
     ```
-  * The computer speakers will play the audio readout of the text.
+  * The speaker will play the audio readout of the text.
 
 #### B. Test Subscribing (Monitoring Kiosk Output text)
 * **Goal:** Verify that the LLM Brain publishes generated wellness responses and transaction prompts.
@@ -155,8 +150,8 @@ roslaunch smart_cafeteria smart_cafeteria.launch
   rostopic echo /smart_cafeteria/kiosk_response
   ```
 * **Expected Output/Reaction:**
-  * You should receive the generated conversational replies or total cost statements. For example, after mocking a YOLO scan:
+  * Receive the generated conversational replies or total cost statements. For example, after a YOLO scan:
     ```yaml
-    data: "Your total comes to fifteen ringgit. You might want to add some green vegetables to balance out the calorie intake. How would you like to pay?"
+    data: "Your total is fifteen ringgit. You might want to add some green vegetables to balance out the calorie intake. Would you like to pay?"
     ---
     ```
