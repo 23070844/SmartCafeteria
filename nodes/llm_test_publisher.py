@@ -18,7 +18,7 @@ def get_local_paths():
     menu_path = os.path.join(script_dir, '..', 'config', 'menu.json')
     return menu_path
 
-def run_local_test(endpoint, key, model, offline_mode):
+def run_local_test(endpoint, key, model):
     """
     Runs the full conversational checkout sequence locally in Python.
     """
@@ -40,8 +40,7 @@ def run_local_test(endpoint, key, model, offline_mode):
     client = AzureAIFoundryClient(
         endpoint=endpoint,
         api_key=key,
-        model_name=model,
-        offline_mode=offline_mode
+        model_name=model
     )
 
     # 1. Start Checkout
@@ -130,12 +129,8 @@ def run_local_test(endpoint, key, model, offline_mode):
     print(f"  -> Matched Items: {[item['name'] for item in matched_items]}")
     print(f"  -> Calculated Subtotal (Python): RM {subtotal:.2f}")
 
-    # Generate combined checkout response (including subtotal in words and nutritional advice in online mode)
-    if offline_mode:
-        advice = client.get_nutritional_advice(matched_items, subtotal)
-        combined_response = f"Your total is RM {subtotal:.2f}. {advice}"
-    else:
-        combined_response = client.get_nutritional_advice(matched_items, subtotal)
+    # Generate combined checkout response (including subtotal in words and nutritional advice)
+    combined_response = client.get_nutritional_advice(matched_items, subtotal)
     print(f"  -> Combined Response (Advice + Price):\n     '{combined_response}'")
 
     # Initialize history
@@ -287,7 +282,6 @@ def run_ros_test():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Test Script for cafeteria LLM node.")
     parser.add_argument('--local', action='store_true', help="Run local python-only tests (bypasses ROS)")
-    parser.add_argument('--offline', action='store_true', help="Force local testing to use offline mock client")
     parser.add_argument('--endpoint', default="", help="Azure AI base URL endpoint")
     parser.add_argument('--key', default="", help="Azure AI key")
     parser.add_argument('--model', default="", help="Azure AI model deployment name")
@@ -300,13 +294,11 @@ if __name__ == '__main__':
         key = args.key or os.environ.get('AZURE_OPENAI_API_KEY', '')
         model = args.model or os.environ.get('AZURE_OPENAI_MODEL', '')
         
-        print(args.offline)
         print(endpoint)
         print(key)
         print(model)
-
-        offline = args.offline or not bool(endpoint and key)
-        run_local_test(endpoint, key, model, offline)
+ 
+        run_local_test(endpoint, key, model)
     else:
         try:
             run_ros_test()

@@ -1,6 +1,5 @@
 <launch>
   <!-- General Configuration -->
-  <arg name="offline_mode" default="false" doc="Run in offline simulation mode without API calls. Set to false to use .env values." />
   <arg name="menu_path" default="" doc="Override path to menu.json database (leave empty to auto-resolve)" />
 
   <!-- Vision Node Configuration -->
@@ -41,7 +40,6 @@
 
   <!-- LLM Brain ROS Node -->
   <node name="llm_brain_node" pkg="smart_cafeteria" type="llm_brain_node.py" output="screen">
-    <param name="offline_mode" value="$(arg offline_mode)" />
     
     <!-- Load credentials dynamically from system environment variables at startup -->
     <param name="azure_endpoint" value="$(optenv AZURE_OPENAI_ENDPOINT)" />

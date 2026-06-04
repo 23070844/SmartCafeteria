@@ -29,10 +29,6 @@ class LLMBrainNode:
         api_key = rospy.get_param('~azure_key', os.environ.get('AZURE_OPENAI_API_KEY', ''))
         model_name = rospy.get_param('~azure_model', os.environ.get('AZURE_OPENAI_MODEL', ''))
         
-        # If credentials are empty, default to offline simulator
-        default_offline = not bool(endpoint and api_key)
-        self.offline_mode = rospy.get_param('~offline_mode', default_offline)
-
         # Load Menu Database JSON
         menu_path = rospy.get_param('~menu_path', '')
         if not menu_path:
@@ -48,12 +44,11 @@ class LLMBrainNode:
         self.menu_data = self._load_menu(menu_path)
 
         # Initialize the Azure client
-        rospy.loginfo(f"LLMBrainNode: Mode -> {'OFFLINE (SIMULATION)' if self.offline_mode else 'ONLINE'}")
+        rospy.loginfo("LLMBrainNode: Mode -> ONLINE")
         self.client = AzureAIFoundryClient(
             endpoint=endpoint,
             api_key=api_key,
-            model_name=model_name,
-            offline_mode=self.offline_mode
+            model_name=model_name
         )
 
         # State Variables
@@ -440,12 +435,8 @@ class LLMBrainNode:
         # })
         # self.bill_pub.publish(bill_msg)
 
-        # Call LLM to generate checkout response (including subtotal in words and nutritional advice in online mode)
-        if self.offline_mode:
-            advice = self.client.get_nutritional_advice(self.current_bill_items, self.current_subtotal)
-            combined_response = f"Your total is RM {self.current_subtotal:.2f}. {advice}"
-        else:
-            combined_response = self.client.get_nutritional_advice(self.current_bill_items, self.current_subtotal)
+        # Call LLM to generate checkout response (including subtotal in words and nutritional advice)
+        combined_response = self.client.get_nutritional_advice(self.current_bill_items, self.current_subtotal)
         rospy.loginfo(f"LLMBrainNode: Publishing checkout response: '{combined_response}'")
 
         # Publish combined bill + advice to TTS

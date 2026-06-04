@@ -123,7 +123,7 @@ source devel/setup.bash
 Load your environment credentials and launch the LLM Brain Node:
 ```bash
 export $(cat .env | xargs)
-roslaunch smart_cafeteria llm_brain.launch offline_mode:=false
+roslaunch smart_cafeteria llm_brain.launch
 ```
 
 ### 3. Trace and Mock Topics

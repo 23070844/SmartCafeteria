@@ -5,15 +5,13 @@ import logging
 from openai import OpenAI
 
 class AzureAIFoundryClient:
-    def __init__(self, endpoint=None, api_key=None, model_name=None, offline_mode=False):
+    def __init__(self, endpoint=None, api_key=None, model_name=None):
         """
         Initializes the Microsoft Azure AI Foundry client using the OpenAI compatibility library.
         :param endpoint: The model chat completion API base URL.
         :param api_key: The API key for authorization.
         :param model_name: The deployment model name (e.g. gpt-oss-120b).
-        :param offline_mode: If True, operates in simulation mode without sending web requests.
         """
-        self.offline_mode = offline_mode
         self.model_name = model_name or os.environ.get("AZURE_OPENAI_MODEL") or "gpt-oss-120b"
         
         # Load API keys from arguments or AZURE_OPENAI_API_KEY environment variable
@@ -23,56 +21,38 @@ class AzureAIFoundryClient:
         if not self.base_url:
             self.base_url = "https://ronotic-resource.openai.azure.com/openai/v1/"
 
-        if not self.offline_mode:
-            # In online mode, we strictly validate that the key exists
-            if not self.api_key:
-                raise ValueError(
-                    "[FATAL ERROR] AZURE_OPENAI_API_KEY environment variable or parameter is missing! "
-                    "Provide it in your .env file or run with offline_mode:=true."
-                )
-            if not self.base_url:
-                raise ValueError(
-                    "[FATAL ERROR] AZURE_OPENAI_ENDPOINT environment variable or parameter is missing!"
-                )
+        # Validate that the key and endpoint exist
+        if not self.api_key:
+            raise ValueError(
+                "[FATAL ERROR] AZURE_OPENAI_API_KEY environment variable or parameter is missing! "
+                "Provide it in your .env file."
+            )
+        if not self.base_url:
+            raise ValueError(
+                "[FATAL ERROR] AZURE_OPENAI_ENDPOINT environment variable or parameter is missing!"
+            )
 
-            # Standardize base_url for the OpenAI client
-            self.base_url = self.base_url.rstrip('/')
-            if self.base_url.endswith('/chat/completions'):
-                self.base_url = self.base_url[:-17].rstrip('/')
-            elif self.base_url.endswith('/chat'):
-                self.base_url = self.base_url[:-5].rstrip('/')
-                
-            logging.info(f"AzureAIFoundryClient: Initializing OpenAI SDK with base_url: {self.base_url}, model: {self.model_name}")
-            try:
-                self.client = OpenAI(
-                    api_key=self.api_key,
-                    base_url=self.base_url
-                )
-            except Exception as e:
-                raise RuntimeError(f"[FATAL ERROR] Failed to initialize OpenAI client client library: {e}")
+        # Standardize base_url for the OpenAI client
+        self.base_url = self.base_url.rstrip('/')
+        if self.base_url.endswith('/chat/completions'):
+            self.base_url = self.base_url[:-17].rstrip('/')
+        elif self.base_url.endswith('/chat'):
+            self.base_url = self.base_url[:-5].rstrip('/')
+            
+        logging.info(f"AzureAIFoundryClient: Initializing OpenAI SDK with base_url: {self.base_url}, model: {self.model_name}")
+        try:
+            self.client = OpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url
+            )
+        except Exception as e:
+            raise RuntimeError(f"[FATAL ERROR] Failed to initialize OpenAI client client library: {e}")
 
     def parse_speech_intent(self, user_speech):
         """
         Analyzes the user's speech transcript and classifies it into one of four keywords.
         Returns exactly one of: 'detect_object', 'chatting', 'proceed_payment', 'cancel_transaction'.
         """
-        if self.offline_mode:
-            speech_clean = user_speech.lower()
-            
-            # Simple keyword matching for offline testing
-            confirms = ["proceed", "payment", "pay", "yes", "confirm", "charge", "ahead", "looks good", "ok", "fine", "correct"]
-            cancels = ["cancel", "stop", "abort", "reset", "clear", "no", "dont", "don't"]
-            checkouts = ["checkout", "check out", "start", "scan", "tray", "items", "how much"]
-
-            if any(word in speech_clean for word in checkouts):
-                return "detect_object"
-            elif any(word in speech_clean for word in confirms):
-                return "proceed_payment"
-            elif any(word in speech_clean for word in cancels):
-                return "cancel_transaction"
-            else:
-                return "chatting"
-
         # LLM Prompts for Intent Parsing
         system_prompt = (
             "You are a routing intent classifier for a smart cafeteria checkout kiosk.\n"
@@ -112,35 +92,6 @@ class AzureAIFoundryClient:
         """
         Generates healthy/nutritional advice based on purchased items and subtotal.
         """
-        if self.offline_mode:
-            total_cals = 0
-            has_sugary_drink = False
-            has_fried = False
-            
-            for item in matched_items:
-                name = item.get("name", "").lower()
-                cals = item.get("calories", 0)
-                qty = item.get("quantity", 1)
-                total_cals += cals * qty
-                
-                if "coke" in name or "cola" in name or "soda" in name:
-                    has_sugary_drink = True
-                if "fried" in name or "nasi lemak" in name:
-                    has_fried = True
-
-            tips = []
-            if total_cals > 600:
-                tips.append("Your meal is quite high in calories today.")
-            if has_sugary_drink:
-                tips.append("Consider swapping the soda for mineral water next time to reduce sugar intake.")
-            if has_fried:
-                tips.append("Pairing rich dishes with a garden salad is a great way to add fiber and vitamins.")
-            
-            if not tips:
-                return "Your meal choices look highly nutritious! Excellent choices!"
-            
-            return "Just a friendly wellness tip: " + " ".join(tips)
-
         # LLM Prompts
         system_prompt = (
             "You are a friendly, encouraging wellness AI nutritionist at a cafeteria self-checkout kiosk.\n"
@@ -173,23 +124,6 @@ class AzureAIFoundryClient:
         """
         Sends the entire chat history (including system prompt) to the LLM.
         """
-        if self.offline_mode:
-            # Simulated offline response generator
-            last_user_message = ""
-            for msg in reversed(chat_history):
-                if msg["role"] == "user":
-                    last_user_message = msg["content"].lower()
-                    break
-            
-            if "milk" in last_user_message and "oat" in last_user_message:
-                return "Swapping milk for oatmilk is great! Oatmilk is naturally dairy-free, lower in saturated fats, and contains beta-glucans which help lower cholesterol. However, check for added sugars!"
-            elif "expensive" in last_user_message or "price" in last_user_message or "cost" in last_user_message:
-                return "The price is calculated directly from our official menu database. Fried Chicken is RM 8.50 and Coca-Cola is RM 3.50, bringing your total to RM 12.00."
-            elif "calorie" in last_user_message or "health" in last_user_message:
-                return "Your current tray contains around 460 calories. Coca-Cola accounts for 140 calories, while Fried Chicken has 320 calories. Try adding a side salad next time!"
-            else:
-                return "I can help you adjust your order, answer nutritional questions, or proceed to payment. Let me know what you would like to do!"
-
         try:
             response = self.client.chat.completions.create(
                 model=self.model_name,
@@ -205,46 +139,6 @@ class AzureAIFoundryClient:
         """
         Matches YOLO detected items to the official menu items using LLM.
         """
-        if self.offline_mode:
-            # Simulate matching logic offline
-            matched = []
-            unmatched = []
-            menu_items_map = {item["id"]: item for item in menu_data}
-            
-            for raw_item in raw_detected_items:
-                if isinstance(raw_item, dict):
-                    raw_id = raw_item.get("id") or raw_item.get("name", "")
-                    qty = raw_item.get("quantity", 1)
-                else:
-                    raw_id = raw_item
-                    qty = 1
-                
-                raw_clean = raw_id.lower().replace("_", " ").replace("-", " ")
-                matched_any = False
-                
-                # Check for direct or fuzzy matches in name or id
-                for item_id, item in menu_items_map.items():
-                    name_clean = item["name"].lower()
-                    if raw_clean in name_clean or name_clean in raw_clean or raw_clean in item_id:
-                        matched.append({
-                            "name": item["name"],
-                            "quantity": qty,
-                            "price": item["price"],
-                            "calories": item["calories"],
-                            "sugar": item["sugar"],
-                            "sodium": item["sodium"]
-                        })
-                        matched_any = True
-                        break
-                
-                if not matched_any:
-                    unmatched.append(raw_id)
-
-            return {
-                "matched_items": matched,
-                "unmatched_items": unmatched
-            }
-
         # LLM Prompts
         system_prompt = (
             "You are an intelligent price matcher for a cafeteria self-checkout kiosk.\n"
