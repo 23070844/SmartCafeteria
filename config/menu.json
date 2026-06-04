@@ -1,43 +1,7 @@
 [
   {
-    "id": "fried_chicken",
-    "name": "Fried Chicken",
-    "price": 8.50,
-    "calories": 320,
-    "protein": "25g",
-    "fat": "18g",
-    "carbs": "10g",
-    "sodium": "600mg",
-    "sugar": "0g",
-    "category": "main"
-  },
-  {
-    "id": "nasi_lemak",
-    "name": "Nasi Lemak",
-    "price": 10.00,
-    "calories": 650,
-    "protein": "15g",
-    "fat": "25g",
-    "carbs": "80g",
-    "sodium": "850mg",
-    "sugar": "8g",
-    "category": "main"
-  },
-  {
-    "id": "salad",
-    "name": "Garden Salad",
-    "price": 6.00,
-    "calories": 100,
-    "protein": "2g",
-    "fat": "5g",
-    "carbs": "12g",
-    "sodium": "150mg",
-    "sugar": "3g",
-    "category": "side"
-  },
-  {
     "id": "coke",
-    "name": "Coca-Cola",
+    "name": "Coca Cola",
     "price": 3.50,
     "calories": 140,
     "protein": "0g",
@@ -48,9 +12,21 @@
     "category": "beverage"
   },
   {
-    "id": "mineral_water",
-    "name": "Mineral Water",
-    "price": 1.50,
+    "id": "milk-box",
+    "name": "milk box",
+    "price": 3.80,
+    "calories": 120,
+    "protein": "8g",
+    "fat": "5g",
+    "carbs": "12g",
+    "sodium": "120mg",
+    "sugar": "12g",
+    "category": "beverage"
+  },
+  {
+    "id": "water-bottle",
+    "name": "water bottle",
+    "price": 1.20,
     "calories": 0,
     "protein": "0g",
     "fat": "0g",
@@ -60,20 +36,8 @@
     "category": "beverage"
   },
   {
-    "id": "apple",
-    "name": "Fresh Apple",
-    "price": 2.00,
-    "calories": 95,
-    "protein": "0.5g",
-    "fat": "0.3g",
-    "carbs": "25g",
-    "sodium": "2mg",
-    "sugar": "19g",
-    "category": "fruit"
-  },
-  {
-    "id": "sushi",
-    "name": "Sushi",
+    "id": "sushi-rice",
+    "name": "sushi rice",
     "price": 12.00,
     "calories": 250,
     "protein": "12g",
@@ -85,7 +49,7 @@
   },
   {
     "id": "burger",
-    "name": "Burger",
+    "name": "burger",
     "price": 15.00,
     "calories": 354,
     "protein": "17g",
@@ -97,7 +61,7 @@
   },
   {
     "id": "cut-fruits",
-    "name": "Cut Fruits",
+    "name": "Cut fruits",
     "price": 5.00,
     "calories": 80,
     "protein": "1g",
@@ -109,7 +73,7 @@
   },
   {
     "id": "egg",
-    "name": "Boiled Egg",
+    "name": "egg",
     "price": 1.50,
     "calories": 78,
     "protein": "6g",
@@ -121,7 +85,7 @@
   },
   {
     "id": "snacks",
-    "name": "Mixed Snacks",
+    "name": "Snacks",
     "price": 3.00,
     "calories": 150,
     "protein": "2g",
@@ -133,7 +97,7 @@
   },
   {
     "id": "nugget",
-    "name": "Chicken Nuggets",
+    "name": "Nugget",
     "price": 6.00,
     "calories": 270,
     "protein": "14g",
@@ -144,8 +108,8 @@
     "category": "protein"
   },
   {
-    "id": "Green vegetable",
-    "name": "Mixed Green Vegetables",
+    "id": "green-vegetable",
+    "name": "Green Vegetable",
     "price": 4.00,
     "calories": 50,
     "protein": "2g",
@@ -157,7 +121,7 @@
   },
   {
     "id": "orange",
-    "name": "Fresh Orange",
+    "name": "Orange",
     "price": 2.50,
     "calories": 62,
     "protein": "1.2g",
@@ -168,8 +132,20 @@
     "category": "fruit"
   },
   {
+    "id": "carbonated-drink-can",
+    "name": "Carbonated Drink Can",
+    "price": 3.00,
+    "calories": 140,
+    "protein": "0g",
+    "fat": "0g",
+    "carbs": "39g",
+    "sodium": "45mg",
+    "sugar": "39g",
+    "category": "beverage"
+  },
+  {
     "id": "sweets",
-    "name": "Assorted Sweets",
+    "name": "Sweets",
     "price": 2.00,
     "calories": 120,
     "protein": "0g",
@@ -180,27 +156,15 @@
     "category": "snack"
   },
   {
-    "id": "egg",
-    "name": "Boiled Egg",
-    "price": 1.50,
-    "calories": 78,
-    "protein": "6g",
-    "fat": "5g",
-    "carbs": "0.6g",
-    "sodium": "62mg",
-    "sugar": "0.2g",
-    "category": "protein"
-  },
-  {
-  "id": "carbonated-drink-can",
-  "name": "Carbonated Drink Can",
-  "price": 3.00,
-  "calories": 140,
-  "protein": "0g",
-  "fat": "0g",
-  "carbs": "39g",
-  "sodium": "45mg",
-  "sugar": "39g",
-  "category": "drink"
-}
+    "id": "bok-choy",
+    "name": "Bok Choy",
+    "price": 4.50,
+    "calories": 12,
+    "protein": "1.5g",
+    "fat": "0.2g",
+    "carbs": "2.2g",
+    "sodium": "65mg",
+    "sugar": "0.8g",
+    "category": "vegetable"
+  }
 ]
